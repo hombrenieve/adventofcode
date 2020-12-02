@@ -7,9 +7,12 @@ import (
 	"strings"
 )
 
-func checkPassword(min, max int, letter, pass string) bool {
-	counted := strings.Count(pass, letter)
-	return counted >= min && counted <= max
+func checkPassword(pos1, pos2 int, letter, pass string) bool {
+	char1 := pass[pos1 : pos1+1]
+	char2 := pass[pos2 : pos2+1]
+	isChar1 := char1 == letter
+	isChar2 := char2 == letter
+	return isChar1 != isChar2
 }
 
 func main() {
@@ -22,7 +25,7 @@ func main() {
 		var letter, pass string
 		text = strings.Replace(text, ":", "", 1)
 		fmt.Sscanf(text, "%d-%d %s %s\n", &min, &max, &letter, &pass)
-		if checkPassword(min, max, letter, pass) {
+		if checkPassword(min-1, max-1, letter, pass) {
 			correct++
 		}
 	}
