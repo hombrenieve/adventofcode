@@ -58,6 +58,19 @@ func countParents(current *node) int {
 	return count
 }
 
+func countChildren(current *node) int {
+	if len(current.children) == 0 {
+		fmt.Printf("%q contains %d bags\n", current.color, 0)
+		return 1
+	}
+	var count int = 1
+	for _, child := range current.children {
+		count += countChildren(child.child) * child.number
+	}
+	fmt.Printf("%q contains %d bags\n", current.color, count)
+	return count
+}
+
 func main() {
 	file, _ := os.Open("input")
 	scanner := bufio.NewScanner(file)
@@ -91,5 +104,5 @@ func main() {
 		}
 
 	}
-	fmt.Printf("%d\n", countParents(findNode("shiny gold"))-1)
+	fmt.Printf("%d\n", countChildren(findNode("shiny gold"))-1)
 }
