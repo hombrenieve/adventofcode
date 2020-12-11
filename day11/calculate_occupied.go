@@ -16,21 +16,30 @@ func checkEqual(step1, step2 [][]byte) bool {
 	return true
 }
 
-func occupiedAdjacent(input [][]byte, x, y int) int {
-	var busyPlaces int
-	for i := x - 1; i < x+2; i++ {
-		if i < 0 || i >= len(input) {
-			continue
+func occupiedInDirection(input [][]byte, x, y int, sumX, sumY int) int {
+	i := x + sumX
+	j := y + sumY
+	for i >= 0 && i < len(input) && j >= 0 && j < len(input[i]) {
+		if input[i][j] == '#' {
+			return 1
+		} else if input[i][j] == 'L' {
+			return 0
 		}
-		for j := y - 1; j < y+2; j++ {
-			if i == x && j == y || j < 0 || j >= len(input[i]) {
-				continue
-			}
-			if input[i][j] == '#' {
-				busyPlaces++
-			}
-		}
+		i += sumX
+		j += sumY
 	}
+	return 0
+}
+
+func occupiedAdjacent(input [][]byte, x, y int) int {
+	busyPlaces := occupiedInDirection(input, x, y, -1, -1) +
+		occupiedInDirection(input, x, y, -1, 0) +
+		occupiedInDirection(input, x, y, -1, 1) +
+		occupiedInDirection(input, x, y, 0, -1) +
+		occupiedInDirection(input, x, y, 0, 1) +
+		occupiedInDirection(input, x, y, 1, -1) +
+		occupiedInDirection(input, x, y, 1, 0) +
+		occupiedInDirection(input, x, y, 1, 1)
 	return busyPlaces
 }
 
@@ -43,7 +52,7 @@ func calculateNextState(input [][]byte) [][]byte {
 			switch {
 			case busy == 0 && input[i][j] == 'L':
 				row[j] = '#'
-			case busy >= 4 && input[i][j] == '#':
+			case busy >= 5 && input[i][j] == '#':
 				row[j] = 'L'
 			default:
 				row[j] = input[i][j]
