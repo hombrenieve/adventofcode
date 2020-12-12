@@ -18,23 +18,60 @@ type position struct {
 	x, y int
 }
 
+func (p *position) relative(other position) position {
+	return position{other.x - p.x, other.y - p.y}
+}
+
+func (p *position) add(other position) position {
+	newPos := *p
+	newPos.x += other.x
+	newPos.y += other.y
+	return newPos
+}
+
+func (p *position) trasp() {
+	sw := p.x
+	p.x = p.y
+	p.y = sw
+}
+
 type location struct {
-	pos position
-	dir int //0-90-180-270
+	pos      position
+	waypoint position
+}
+
+func newLocation() *location {
+	l := &location{
+		waypoint: position{x: 10, y: 1},
+	}
+	return l
 }
 
 func (l *location) moveForward(units int) {
-	switch l.dir {
-	case 0:
-		l.calculateNext('E', units)
+	relative := l.pos.relative(l.waypoint)
+	l.pos.x += relative.x * units
+	l.pos.y += relative.y * units
+	l.waypoint.x += relative.x * units
+	l.waypoint.y += relative.y * units
+}
+
+func (l *location) rotate(deg int) {
+	relative := l.pos.relative(l.waypoint)
+	switch deg {
 	case 90:
-		l.calculateNext('N', units)
+		relative.trasp()
+		relative.x = -relative.x
+		l.waypoint = l.pos.add(relative)
 	case 180:
-		l.calculateNext('W', units)
+		relative.x = -relative.x
+		relative.y = -relative.y
+		l.waypoint = l.pos.add(relative)
 	case 270:
-		l.calculateNext('S', units)
+		relative.trasp()
+		relative.y = -relative.y
+		l.waypoint = l.pos.add(relative)
 	default:
-		fmt.Println("Error in direction:", l.dir)
+		fmt.Println("Error in direction:", deg)
 	}
 }
 
@@ -43,18 +80,17 @@ func (l *location) calculateNext(cmd byte, arg int) {
 	case 'F':
 		l.moveForward(arg)
 	case 'N':
-		l.pos.y += arg
+		l.waypoint.y += arg
 	case 'S':
-		l.pos.y -= arg
+		l.waypoint.y -= arg
 	case 'W':
-		l.pos.x -= arg
+		l.waypoint.x -= arg
 	case 'E':
-		l.pos.x += arg
+		l.waypoint.x += arg
 	case 'L':
-		l.dir = (l.dir + arg) % 360
+		l.rotate(arg)
 	case 'R':
-		l.dir = (l.dir + (360 - arg)) % 360
-
+		l.rotate(360 - arg)
 	}
 }
 
@@ -65,7 +101,7 @@ func (l *location) manhattam() int {
 func main() {
 	file, _ := os.Open("input")
 	scanner := bufio.NewScanner(file)
-	var ship location
+	ship := newLocation()
 	for scanner.Scan() {
 		buf := scanner.Text()
 		cmd := []byte(buf)[0]
@@ -74,6 +110,6 @@ func main() {
 		//fmt.Println("Cmd:", buf)
 		ship.calculateNext(cmd, arg)
 	}
-	fmt.Println("Final state:", ship, "Manhattam:", ship.manhattam())
+	fmt.Println("Final state:", *ship, "Manhattam:", ship.manhattam())
 
 }
