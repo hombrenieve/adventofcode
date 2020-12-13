@@ -23,16 +23,15 @@ func (p *position) relative(other position) position {
 }
 
 func (p *position) add(other position) position {
-	newPos := *p
-	newPos.x += other.x
-	newPos.y += other.y
-	return newPos
+	return position{p.x + other.x, p.y + other.y}
+}
+
+func (p *position) mult(units int) position {
+	return position{p.x * units, p.y * units}
 }
 
 func (p *position) trasp() {
-	sw := p.x
-	p.x = p.y
-	p.y = sw
+	p.x, p.y = p.y, p.x
 }
 
 type location struct {
@@ -49,10 +48,9 @@ func newLocation() *location {
 
 func (l *location) moveForward(units int) {
 	relative := l.pos.relative(l.waypoint)
-	l.pos.x += relative.x * units
-	l.pos.y += relative.y * units
-	l.waypoint.x += relative.x * units
-	l.waypoint.y += relative.y * units
+	mult := relative.mult(units)
+	l.pos = l.pos.add(mult)
+	l.waypoint = l.waypoint.add(mult)
 }
 
 func (l *location) rotate(deg int) {
