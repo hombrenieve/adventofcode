@@ -19,7 +19,6 @@ func main() {
 	for _, numbS := range strings.Split(os.Args[1], ",") {
 		numb, _ := strconv.Atoi(numbS)
 		gameMap[numb] = &gameStatus{gameTurn, -1}
-		fmt.Println("Turn:", gameTurn, "Number:", numb)
 		gameTurn++
 		lastNumber = numb
 	}
@@ -33,6 +32,6 @@ func main() {
 			status.lastTurn = gameTurn - 1
 			lastNumber = status.lastTurn - status.previousTurn
 		}
-		fmt.Println("Turn:", gameTurn, "Number:", lastNumber)
 	}
+	fmt.Println("Turn:", gameTurn-1, "Number:", lastNumber)
 }
