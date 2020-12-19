@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -18,31 +19,35 @@ type rule struct {
 	highPart rangeRule
 }
 
-type rMap map[string]rule
+func (r *rule) isValid(field int) bool {
+	return !(field < r.lowPart.min ||
+		field > r.highPart.max ||
+		(field > r.lowPart.max && field < r.highPart.min))
+}
+
+type rMap map[string]*rule
 
 func (rm *rMap) isValid(field int) bool {
 	for _, r := range *rm {
-		if !(field < r.lowPart.min ||
-			field > r.highPart.max ||
-			(field > r.lowPart.max && field < r.highPart.min)) {
+		if r.isValid(field) {
 			return true
 		}
 	}
 	return false
 }
 
-func newRule(range1, range2 string) rule {
+func newRule(range1, range2 string) *rule {
 	stringToRange := func(rangeS string) rangeRule {
 		parts := strings.Split(rangeS, "-")
 		low, _ := strconv.Atoi(parts[0])
 		high, _ := strconv.Atoi(parts[1])
 		return rangeRule{low, high}
 	}
-	return rule{stringToRange(range1), stringToRange(range2)}
+	return &rule{stringToRange(range1), stringToRange(range2)}
 }
 
 func createRuleMap(scanner *bufio.Scanner) rMap {
-	ruleMap := make(map[string]rule)
+	ruleMap := make(map[string]*rule)
 	for scanner.Scan() {
 		text := scanner.Text()
 		if text == "" {
@@ -66,14 +71,91 @@ func stringsToInt(stSlice []string) []int {
 	return intSlice
 }
 
-func inValidFields(ticket []int, ruleMap rMap) []int {
-	var invalids []int
+func isValid(ticket []int, ruleMap rMap) bool {
 	for _, field := range ticket {
 		if !ruleMap.isValid(field) {
-			invalids = append(invalids, field)
+			return false
 		}
 	}
-	return invalids
+	return true
+}
+
+func processTicket(ticket []int, r *rule, validFields []bool) {
+	for i, field := range ticket {
+		//Check field is correct
+		if !r.isValid(field) {
+			validFields[i] = false
+		}
+	}
+}
+
+type posRow []bool
+
+func (pr *posRow) findNext(pos int) int {
+	for i := pos; i < len(*pr); i++ {
+		if (*pr)[i] {
+			return i
+		}
+	}
+	return -1
+}
+
+func (pr *posRow) numOfPositives() int {
+	var n int
+	for _, v := range *pr {
+		if v {
+			n++
+		}
+	}
+	return n
+}
+
+type posHint struct {
+	name          string
+	possibilities posRow
+}
+
+type orderedNames []string
+
+func (rm *orderedNames) contains(i int) bool {
+	return (*rm)[i] != ""
+}
+
+func processRule(r *rule, tickets [][]int) posRow {
+	isValidField := make([]bool, len(tickets[0]), len(tickets[0]))
+	for i := range isValidField {
+		isValidField[i] = true
+	}
+	for _, ticket := range tickets {
+		processTicket(ticket, r, isValidField)
+	}
+	return isValidField
+}
+
+func findResult(possibilities []posHint, results orderedNames) bool {
+	if len(possibilities) == 0 {
+		return true
+	}
+	current := possibilities[0]
+	for i := 0; i < len(current.possibilities); {
+		nextPos := current.possibilities.findNext(i)
+		if nextPos == -1 {
+			break
+		}
+		if results.contains(nextPos) {
+			i = nextPos + 1
+			continue
+		}
+		results[nextPos] = current.name
+		found := findResult(possibilities[1:], results)
+		if !found {
+			results[nextPos] = ""
+			i = nextPos + 1
+		} else {
+			return true
+		}
+	}
+	return false
 }
 
 func main() {
@@ -81,14 +163,46 @@ func main() {
 	scanner := bufio.NewScanner(file)
 	ruleMap := createRuleMap(scanner)
 	//Ignore until nearby tickets is shown
+	scanner.Scan()
+	scanner.Scan()
+	yourTicket := stringsToInt(strings.Split(scanner.Text(), ","))
 	for ; scanner.Text() != "nearby tickets:"; scanner.Scan() {
 	}
-	var errorRate int
+	var tickets [][]int
 	for scanner.Scan() {
 		ticket := stringsToInt(strings.Split(scanner.Text(), ","))
-		for _, v := range inValidFields(ticket, ruleMap) {
-			errorRate += v
+		if isValid(ticket, ruleMap) {
+			tickets = append(tickets, ticket)
+		}
+
+	}
+	tickets = append(tickets, yourTicket)
+
+	var possibilities []posHint
+	for n, r := range ruleMap {
+		possibilities = append(possibilities,
+			posHint{
+				n,
+				processRule(r, tickets),
+			})
+	}
+	sort.Slice(possibilities, func(i, j int) bool {
+		return possibilities[i].possibilities.numOfPositives() < possibilities[j].possibilities.numOfPositives()
+	})
+	fmt.Println(possibilities)
+
+	results := make([]string, len(ruleMap), len(ruleMap))
+	found := findResult(possibilities, results)
+	fmt.Println("Found:", found, "Results:", results)
+
+	result := 1
+	fmt.Println("-----------------------")
+	for i, v := range yourTicket {
+		fmt.Printf("%s: %d\n", results[i], v)
+		if strings.HasPrefix(results[i], "departure") {
+			result *= v
 		}
 	}
-	fmt.Println("ErrorRate:", errorRate)
+	fmt.Println("Result:", result)
+	fmt.Println("-----------------------")
 }
