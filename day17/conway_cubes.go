@@ -7,11 +7,11 @@ import (
 )
 
 type coordinate struct {
-	x, y, z int
+	x, y, z, w int
 }
 
 func (c coordinate) activeNeighbours(s space) int {
-	return 26 - len(c.inactiveNeighbours(s))
+	return 80 - len(c.inactiveNeighbours(s))
 }
 
 func (c coordinate) remainsActive(s space) bool {
@@ -28,12 +28,14 @@ func (c coordinate) inactiveNeighbours(s space) []coordinate {
 	for i := c.x - 1; i < c.x+2; i++ {
 		for j := c.y - 1; j < c.y+2; j++ {
 			for k := c.z - 1; k < c.z+2; k++ {
-				if i == c.x && j == c.y && k == c.z {
-					continue
-				}
-				newC := coordinate{i, j, k}
-				if _, ok := s[newC]; !ok {
-					n = append(n, newC)
+				for p := c.w - 1; p < c.w+2; p++ {
+					if i == c.x && j == c.y && k == c.z && p == c.w {
+						continue
+					}
+					newC := coordinate{i, j, k, p}
+					if _, ok := s[newC]; !ok {
+						n = append(n, newC)
+					}
 				}
 			}
 		}
@@ -71,7 +73,7 @@ func main() {
 		input := []byte(scanner.Text())
 		for x := 0; x < len(input); x++ {
 			if input[x] == '#' {
-				mySpace[coordinate{x, y, 0}] = true
+				mySpace[coordinate{x, y, 0, 0}] = true
 			}
 		}
 		y++
