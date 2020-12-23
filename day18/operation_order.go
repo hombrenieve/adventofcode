@@ -18,6 +18,7 @@ func reduce(singleExpr string) int {
 	case "*":
 		return left * right
 	}
+	fmt.Println("ERROOOOOOOOOOOOOOR")
 	return -435
 }
 
@@ -40,7 +41,7 @@ func getExprLimits(expr string, operInd int) (int, int) {
 }
 
 func evaluate(expr string) int {
-	//fmt.Println("Evaluate:", expr)
+	fmt.Println("Evaluate:", expr)
 	operators := []string{"+", "*"}
 	for _, op := range operators {
 		for {
@@ -52,7 +53,7 @@ func evaluate(expr string) int {
 			res := reduce(expr[inf:sup])
 			resS := fmt.Sprintf("%d", res)
 			expr = strings.ReplaceAll(expr, expr[inf:sup], resS)
-			//fmt.Println("Reduced to:", expr)
+			fmt.Println("Reduced to:", expr)
 		}
 	}
 	result, _ := strconv.Atoi(expr)
@@ -75,16 +76,17 @@ func findPars(expr string) (int, int) {
 }
 
 func reduceExpr(expr string) int {
-	//fmt.Println("ReduceExpr:", expr)
+	fmt.Println("ReduceExpr:", expr)
 	for {
 		inf, sup := findPars(expr)
 		if inf == 0 && sup == len(expr) {
+			expr = strings.TrimRight(strings.TrimLeft(expr, "("), ")")
 			break
 		}
 		res := evaluate(expr[inf+1 : sup-1])
 		resS := fmt.Sprintf("%d", res)
 		expr = strings.ReplaceAll(expr, expr[inf:sup], resS)
-		//fmt.Println("Reduced to:", expr)
+		fmt.Println("Reduced to:", expr)
 	}
 	return evaluate(expr)
 }
@@ -92,12 +94,12 @@ func reduceExpr(expr string) int {
 func main() {
 	file, _ := os.Open("input")
 	scanner := bufio.NewScanner(file)
-	var accumulate int
+	var accumulate int64
 	for scanner.Scan() {
 		operations := scanner.Text()
 		tmp := reduceExpr(operations)
 		fmt.Println(operations, "=", tmp)
-		accumulate += tmp
+		accumulate += int64(tmp)
 	}
 	fmt.Println("Result:", accumulate)
 }
