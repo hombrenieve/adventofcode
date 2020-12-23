@@ -5,83 +5,88 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
-type calculable interface {
-	solve() int
-}
-
-type operationType struct {
-	left      calculable
-	right     calculable
-	operation byte
-}
-
-func (op *operationType) solve() int {
-	if op.right == nil {
-		return op.left.solve()
+func reduce(singleExpr string) int {
+	splitted := strings.Split(singleExpr, " ")
+	left, _ := strconv.Atoi(splitted[0])
+	right, _ := strconv.Atoi(splitted[2])
+	switch splitted[1] {
+	case "+":
+		return left + right
+	case "*":
+		return left * right
 	}
-	switch op.operation {
-	case '+':
-		return op.left.solve() + op.right.solve()
-	case '*':
-		return op.left.solve() * op.right.solve()
-	default:
-		return -536
-	}
+	return -435
 }
 
-type intType struct {
-	leaf int
-}
-
-func (op *intType) solve() int {
-	return op.leaf
-}
-
-func build(operation string, pos int) (calculable, int) {
-	var expr operationType
-
-	for pos < len(operation) {
-		switch byte(operation[pos]) {
-		case ')':
-			return &intType{expr.solve()}, pos
-		case '(':
-			if expr.left == nil {
-				expr.left, pos = build(operation, pos+1)
-			} else {
-				expr.right, pos = build(operation, pos+1)
-				expr = operationType{&intType{expr.solve()}, nil, 0}
-			}
-		case '+':
-			expr.operation = '+'
-		case '*':
-			expr.operation = '*'
-		case ' ':
-
-		default:
-			leaf, _ := strconv.Atoi(operation[pos : pos+1])
-			if expr.left == nil {
-				expr.left = &intType{leaf}
-			} else if expr.right == nil {
-				if expr.operation == '+' {
-					expr.right = &intType{leaf}
-				} else {
-					expr.right, pos = build(operation, pos)
-					if pos < len(operation) && byte(operation[pos]) == ')' {
-						pos--
-					}
-				}
-				expr = operationType{&intType{expr.solve()}, nil, 0}
-			}
+func getExprLimits(expr string, operInd int) (int, int) {
+	inf := 0
+	sup := len(expr)
+	for i := operInd - 2; i > 0; i-- {
+		if expr[i] == ' ' {
+			inf = i + 1
+			break
 		}
-		pos++
 	}
-	return &intType{expr.solve()}, pos
+	for i := operInd + 2; i < len(expr); i++ {
+		if expr[i] == ' ' {
+			sup = i
+			break
+		}
+	}
+	return inf, sup
 }
 
-func calculate(operation calculable) int {
-	return operation.solve()
+func evaluate(expr string) int {
+	//fmt.Println("Evaluate:", expr)
+	operators := []string{"+", "*"}
+	for _, op := range operators {
+		for {
+			ind := strings.Index(expr, op)
+			if ind == -1 {
+				break
+			}
+			inf, sup := getExprLimits(expr, ind)
+			res := reduce(expr[inf:sup])
+			resS := fmt.Sprintf("%d", res)
+			expr = strings.ReplaceAll(expr, expr[inf:sup], resS)
+			//fmt.Println("Reduced to:", expr)
+		}
+	}
+	result, _ := strconv.Atoi(expr)
+	return result
+}
+
+func findPars(expr string) (int, int) {
+	inf := 0
+	sup := len(expr)
+	for i, c := range expr {
+		if c == '(' {
+			inf = i
+		}
+		if c == ')' {
+			sup = i + 1
+			break
+		}
+	}
+	return inf, sup
+}
+
+func reduceExpr(expr string) int {
+	//fmt.Println("ReduceExpr:", expr)
+	for {
+		inf, sup := findPars(expr)
+		if inf == 0 && sup == len(expr) {
+			break
+		}
+		res := evaluate(expr[inf+1 : sup-1])
+		resS := fmt.Sprintf("%d", res)
+		expr = strings.ReplaceAll(expr, expr[inf:sup], resS)
+		//fmt.Println("Reduced to:", expr)
+	}
+	return evaluate(expr)
 }
 
 func main() {
@@ -90,8 +95,7 @@ func main() {
 	var accumulate int
 	for scanner.Scan() {
 		operations := scanner.Text()
-		current, _ := build(operations, 0)
-		tmp := calculate(current)
+		tmp := reduceExpr(operations)
 		fmt.Println(operations, "=", tmp)
 		accumulate += tmp
 	}
