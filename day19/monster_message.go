@@ -23,7 +23,20 @@ func (r rule) regex(rm *ruleMap) string {
 			} else if rl == rm.ruleB {
 				currentRegex += "b"
 			} else {
-				currentRegex += rm.theMap[rl].regex(rm)
+				if rl == 8 {
+					currentRegex += rm.theMap[42].regex(rm) + "+"
+				} else if rl == 11 {
+					rule42 := rm.theMap[42].regex(rm)
+					rule31 := rm.theMap[31].regex(rm)
+					currentRegex += "("
+					for j := 1; j < 5; j++ {
+						currentRegex += fmt.Sprintf("%s{%d}%s{%d}", rule42, j, rule31, j)
+						currentRegex += "|"
+					}
+					currentRegex = currentRegex[:len(currentRegex)-1] + ")"
+				} else {
+					currentRegex += rm.theMap[rl].regex(rm)
+				}
 			}
 		}
 		if i == 0 && len(r.parts[1]) > 0 {
