@@ -51,6 +51,37 @@ impl Tile {
     }
 }
 
+fn matches_with<V>(head: &V, tail: &[V]) -> u32
+where V: Eq
+{
+    tail.iter().fold(0, |mut sum, elem| {
+        if elem == head {
+            sum+=1;
+        }
+        sum        
+    })
+}
+
+fn elements_matching<V>(vect1: &Vec<V>, vect2: &Vec<V>) -> u32
+where V: Eq
+{
+    let mut total = 0;
+    for v in vect1.iter() {
+        total += matches_with(v, &vect2);
+    }
+    total
+}
+
+fn find_max_matches(tile: &Tile, tiles: &[Tile]) -> u32 {
+    let mut max = 0;
+    let borders = tile.get_borders();
+    for other_borders in tiles.iter().map(|t| t.get_borders()) {
+        let matches = elements_matching(&borders, &other_borders);
+        max = std::cmp::max(max, matches);
+    }
+    max
+}
+
 fn main() {
     let lines = read_lines("./input").unwrap();
     let mut tile_lines: Vec<String> = vec![];
@@ -70,16 +101,18 @@ fn main() {
     for _ in 0..4 {
         tiles[0].rotate();
         println!("Rotado: {:?}", tiles[0]);
+        println!("Max: {}", find_max_matches(&tiles[0], &tiles[1..]));
     }
     for _ in 0..2 {
         tiles[0].flipv();
         println!("Flipv: {:?}", tiles[0]);
+        println!("Max: {}", find_max_matches(&tiles[0], &tiles[1..]));
     }
     for _ in 0..2 {
         tiles[0].fliph();
         println!("Fliph: {:?}", tiles[0]);
+        println!("Max: {}", find_max_matches(&tiles[0], &tiles[1..]));
     }
-    println!("Borders: {:?}", tiles[0].get_borders());
 }
 
 // The output is wrapped in a Result to allow matching on errors
