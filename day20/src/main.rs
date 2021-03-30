@@ -39,6 +39,16 @@ impl Tile {
             );
         self.status.2 = !self.status.2;
     }
+    fn get_borders(&self) -> Vec<String> {
+        let left = self.data.iter().fold(String::new(), |mut res, s| {res.push(s.chars().next().unwrap());res});
+        let right = self.data.iter().fold(String::new(), |mut res, s| {res.push(s.chars().rev().next().unwrap());res});
+        vec![
+            self.data[0].clone(),
+            self.data.last().unwrap().clone(),
+            left,
+            right
+        ]
+    }
 }
 
 fn main() {
@@ -69,6 +79,7 @@ fn main() {
         tiles[0].fliph();
         println!("Fliph: {:?}", tiles[0]);
     }
+    println!("Borders: {:?}", tiles[0].get_borders());
 }
 
 // The output is wrapped in a Result to allow matching on errors
