@@ -113,6 +113,13 @@ fn main() {
         println!("Fliph: {:?}", tiles[0]);
         println!("Max: {}", find_max_matches(&tiles[0], &tiles[1..]));
     }
+
+
+    for n in 0..tiles.len() {
+        let max = find_max_matches(&tiles[n], &tiles[n+1..]);
+        println!("Tile {} matches {}", tiles[n].id, max);
+    }
+
 }
 
 // The output is wrapped in a Result to allow matching on errors
