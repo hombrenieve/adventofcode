@@ -33,7 +33,11 @@ impl Tile {
         self.status.1 = !self.status.1;
     }
     fn fliph(&mut self) {
-        //self.data.iter_mut().map(|s| s.reverse());
+        self.data.iter_mut()
+            .for_each(|s| 
+                s.replace_range(.., s.chars().rev().collect::<String>().as_str())
+            );
+        self.status.2 = !self.status.2;
     }
 }
 
@@ -60,6 +64,10 @@ fn main() {
     for _ in 0..2 {
         tiles[0].flipv();
         println!("Flipv: {:?}", tiles[0]);
+    }
+    for _ in 0..2 {
+        tiles[0].fliph();
+        println!("Fliph: {:?}", tiles[0]);
     }
 }
 
