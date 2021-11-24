@@ -18,11 +18,23 @@ func runProgram(_ counter: Int) {
     }
 }
 
-
 while let input = readLine() {
     let strs = input.components(separatedBy: [","])
     program.append(contentsOf: strs.compactMap{Int($0)})
 }
-print("Program before: \(program)")
-runProgram(0)
-print("Program after: \(program)")
+
+var original = program
+
+outerloop: for noun in 0...99 {
+    for verb in 0...99 {
+        print("Checking: noun=\(noun), verb=\(verb)")
+        program = original
+        program[1] = noun
+        program[2] = verb
+        runProgram(0)
+        if program[0] == 19690720 {
+            print("Found!: noun=\(noun), verb=\(verb), res=\(noun*100+verb)")
+            break outerloop
+        }
+    }
+}
