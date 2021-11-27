@@ -24,8 +24,8 @@ struct Vector {
     var amount: Int
 }
 
-func generatePoints(origin curr: inout Point, vector: Vector) -> Set<Point> {
-    var points : Set<Point> = []
+func generatePoints(origin curr: inout Point, vector: Vector) -> [Point] {
+    var points : [Point] = []
     var v = vector
     while v.amount > 0 {
         switch v.direction {
@@ -41,30 +41,44 @@ func generatePoints(origin curr: inout Point, vector: Vector) -> Set<Point> {
                 print("KK")
         }
         v.amount-=1
-        points.insert(curr)
+        points.append(curr)
     }
     return points
 }
 
-func loadLine(_ input: String) -> Set<Point> {
-    var line : Set<Point> = []
+func loadLine(_ input: String) -> [Point] {
+    var line : [Point] = []
     let steps = input.components(separatedBy: [","])
     var origin = Point(x: 0, y: 0)
     for step in steps {
         let v = Vector(direction: step.first!, amount: Int(step.substring(from: 1))!)
         let gp = generatePoints(origin: &origin, vector: v)
-        line.formUnion(gp)
+        line.append(contentsOf: gp)
     }
     return line
 }
 
-let firstLine = loadLine(readLine()!)
-let secondLine = loadLine(readLine()!)
+func distanceTo(point: Point, in array: [Point], and secondArray: [Point]) -> Int {
+    return array.firstIndex(of: point)!+secondArray.firstIndex(of: point)!+2
+}
 
-let intersection = firstLine.intersection(secondLine)
+func findMinDistance(firstWire first: [Point], secondWire second: [Point], intersection: Set<Point>) -> Int {
+    return intersection.map({distanceTo(point: $0, in: first, and: second)}).min()!
+}
+
+let firstLine = loadLine(readLine()!)
+let firstLineSet = Set<Point>.init(firstLine)
+let secondLine = loadLine(readLine()!)
+let secondLineSet = Set<Point>.init(secondLine)
+
+let intersection = firstLineSet.intersection(secondLineSet)
 
 print("Intersection: \(intersection))")
 
 let minDistance = intersection.min { $0.manhattam() < $1.manhattam() }
 
 print("Minimum: \(minDistance!.manhattam())")
+
+let bestPath = findMinDistance(firstWire: firstLine, secondWire: secondLine, intersection: intersection)
+
+print("Distances: \(bestPath)")
