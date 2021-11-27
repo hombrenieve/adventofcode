@@ -22,13 +22,9 @@ struct Point : Hashable {
 struct Vector {
     var direction: Character
     var amount: Int
-}
 
-func generatePoints(origin curr: inout Point, vector: Vector) -> [Point] {
-    var points : [Point] = []
-    var v = vector
-    while v.amount > 0 {
-        switch v.direction {
+    private func changePoint(_ curr: inout Point) {
+        switch direction {
             case "U":
                 curr.y+=1
             case "D":
@@ -40,22 +36,22 @@ func generatePoints(origin curr: inout Point, vector: Vector) -> [Point] {
             default:
                 print("KK")
         }
-        v.amount-=1
-        points.append(curr)
     }
-    return points
+
+    func generatePoints(origin curr: inout Point) -> [Point] {
+        var points : [Point] = []
+        for _ in 1...amount {
+            changePoint(&curr)
+            points.append(curr)
+        }
+        return points
+    }
 }
 
 func loadLine(_ input: String) -> [Point] {
-    var line : [Point] = []
     let steps = input.components(separatedBy: [","])
     var origin = Point(x: 0, y: 0)
-    for step in steps {
-        let v = Vector(direction: step.first!, amount: Int(step.substring(from: 1))!)
-        let gp = generatePoints(origin: &origin, vector: v)
-        line.append(contentsOf: gp)
-    }
-    return line
+    return steps.flatMap({ Vector(direction: $0.first!, amount: Int($0.substring(from: 1))!).generatePoints(origin: &origin) })
 }
 
 func distanceTo(point: Point, in array: [Point], and secondArray: [Point]) -> Int {
