@@ -12,6 +12,18 @@ func countIncrease(v: [Int]) -> Int {
     return increases
 }
 
+func countWindow(_ v:[Int]) -> Int {
+    if v.count < 4 {
+        return 0
+    }
+    let w1 = v[0]+v[1]+v[2]
+    let w2 = v[1]+v[2]+v[3]
+    if w1 < w2 {
+        return 1+countWindow(Array(v[1...]))
+    }
+    return countWindow(Array(v[1...]))
+}
+
 var v : [Int] = []
 
 while let input = readLine() {
@@ -22,4 +34,4 @@ while let input = readLine() {
     }
 }
 
-print("Increases: \(countIncrease(v: v))")
+print("Increases: \(countWindow(v))")
