@@ -3,15 +3,17 @@ import Foundation
 struct Position {
     var horizontal: Int = 0
     var depth: Int = 0
+    var aim: Int = 0
 
     mutating func newPos(cmd: String, amt: Int) {
         switch(cmd) {
         case "forward":
             horizontal += amt
+            depth += aim*amt
         case "down":
-            depth += amt
+            aim += amt
         case "up":
-            depth -= amt
+            aim -= amt
         default:
             print("NOWAY")
         }
