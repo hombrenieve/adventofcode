@@ -14,26 +14,41 @@ func stringFrom(column: Int, of: [String]) -> String {
     return res
 }
 
-func getMostAndLessCommon(inString: String) -> (String, String) {
+func getMostCommon(_ inString: String) -> String {
     let zeros = numberOfOccurrencesOf(string: "0", from: inString)
     let ones = numberOfOccurrencesOf(string: "1", from: inString)
-    if zeros < ones {
-        return ("1", "0")
+    if ones < zeros {
+        return "0"
     }
-    return ("0", "1")
+    return "1"
 }
 
-func calculateValues(array: [String]) -> (Int, Int) {
-    var gamma = ""
-    var epsilon = ""
-    let wordSize = array[0].count
-    for index in 0..<wordSize {
-        let column = stringFrom(column: index, of: array)
-        let (compGamma, compEpsilon) = getMostAndLessCommon(inString: column)
-        gamma += compGamma
-        epsilon += compEpsilon
+func getLeastCommon(_ inString: String) -> String {
+    let zeros = numberOfOccurrencesOf(string: "0", from: inString)
+    let ones = numberOfOccurrencesOf(string: "1", from: inString)
+    if ones < zeros {
+        return "1"
     }
-    return (Int(gamma, radix:2)!, Int(epsilon, radix:2)!)
+    return "0"
+}
+
+func findPattern(data: [String], pattern: String, comparator: (String)->String) -> Int {
+    if data.count == 1 {
+        return Int(data[0], radix: 2)!
+    }
+    let column = pattern.count
+    let columnString = stringFrom(column: column, of: data)
+    let newPattern = pattern + comparator(columnString)
+    let newArray = data.filter({$0.hasPrefix(newPattern)})
+    return findPattern(data: newArray, pattern: newPattern, comparator: comparator)
+}
+
+func findOxygenGeneratorRating(array: [String]) -> Int {
+    return findPattern(data: array, pattern: "", comparator: getMostCommon)
+}
+
+func findCO2ScrubberRating(array: [String]) -> Int {
+    return findPattern(data: array, pattern: "", comparator: getLeastCommon)
 }
 
 
@@ -42,6 +57,9 @@ while let line = readLine() {
     input.append(line)
 }
 
-let (gamma, epsilon) = calculateValues(array: input)
-print("gamma: \(gamma), epsilon: \(epsilon)")
-print("res: \(gamma*epsilon)")
+let oxygen = findOxygenGeneratorRating(array: input)
+let co2 = findCO2ScrubberRating(array: input)
+
+print("Gener: \(oxygen)")
+print("CO2: \(co2)")
+print("Res: \(oxygen*co2)")
