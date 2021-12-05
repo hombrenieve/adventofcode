@@ -1,57 +1,55 @@
 import Foundation
 
-struct Point: Hashable {
+struct Point: Hashable, Equatable {
     let x : Int
     let y : Int
     func hash(into hasher: inout Hasher) {
         hasher.combine(x)
         hasher.combine(y)
     }
+    static func +(lhs: Point, rhs: Point) -> Point {
+        return Point(
+            x: lhs.x + rhs.x,
+            y: lhs.y + rhs.y
+        )
+    }
+    static func ==(lhs: Point, rhs: Point) -> Bool {
+        return lhs.x == rhs.x && lhs.y == rhs.y
+    }
 }
+
 struct Line {
     let start: Point
     let end: Point
-    var isHorizontal: Bool {
-        if start.x == end.x {
-            return true
+    var direction: Point {
+        var xDir = 0
+        var yDir = 0
+        switch start.x {
+        case let x where x < end.x:
+            xDir = 1
+        case let x where x > end.x:
+            xDir = -1
+        default:
+            xDir = 0
         }
-        return false
-    }
-    var isVertical: Bool {
-        if start.y == end.y {
-            return true
+        switch start.y {
+        case let y where y < end.y:
+            yDir = 1
+        case let y where y > end.y:
+            yDir = -1
+        default:
+            yDir = 0
         }
-        return false
+        return Point(x: xDir, y: yDir)
     }
     var points: Set<Point> {
         var myPoints: Set<Point> = []
-        if isHorizontal {
-            var sty = 0
-            var endy = 0
-            if start.y < end.y {
-                sty = start.y
-                endy = end.y
-            }else {
-                sty = end.y
-                endy = start.y
-            }
-            for y in sty...endy {
-                myPoints.insert(Point(x: start.x, y: y))
-            }
-        } else if isVertical {
-            var stx = 0
-            var endx = 0
-            if start.x < end.x {
-                stx = start.x
-                endx = end.x
-            }else {
-                stx = end.x
-                endx = start.x
-            }
-            for x in stx...endx {
-                myPoints.insert(Point(x: x, y: start.y))
-            }
-        }
+        var point = start
+        repeat {
+            myPoints.insert(point)
+            point = point+direction
+        } while point != end
+        myPoints.insert(end)
         return myPoints
     }
     func intersection(other: Line) -> Set<Point> {
@@ -70,6 +68,7 @@ func intersections(of: Line, with: [Line]) -> Set<Point> {
 func calculateIntersections(input: [Line]) -> Set<Point> {
     var inters: Set<Point> = []
     for i in 0..<input.count-1 {
+        print("Calculating intersection: \(i+1)/\(input.count-1)")
         let partial = intersections(of: input[i], with: Array(input[i+1...input.count-1]))
         inters.formUnion(partial)
     }
@@ -86,7 +85,7 @@ while let line = readLine() {
     input.append(currentLine)
 }
 
-let intrs = calculateIntersections(input: input.filter({$0.start.x == $0.end.x || $0.start.y == $0.end.y}))
+let intrs = calculateIntersections(input: input)
 
 
 print("Points: \(intrs)")
