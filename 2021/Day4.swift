@@ -59,10 +59,11 @@ while let _ = readLine() {
 
 for ball in bingoGame {
     bingoBoards.forEach({$0.remove(number: ball)})
-    if let winner = bingoBoards.firstIndex(where: {$0.sums.isBingo}) {
+    while let winner = bingoBoards.firstIndex(where: {$0.sums.isBingo}) {
         let remaining = bingoBoards[winner].sums.remaining
         print("With ball: \(ball) The board \(winner) has bingo, remaining: \(remaining)")
         print("Result is: \(ball*remaining)")
-        break
+        //remove that one
+        bingoBoards.remove(at: winner)
     }
 }
