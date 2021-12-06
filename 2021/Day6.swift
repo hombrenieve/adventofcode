@@ -30,7 +30,7 @@ extension Colony {
 
 if let input = readLine() {
     var theColony = Colony(from: input.components(separatedBy: ","))
-    let days = 80
+    let days = 256
 
     for day in 1...days {
         theColony.nextGeneration()
