@@ -13,23 +13,25 @@ func quicksort<T: Comparable>(_ a: [T]) -> [T] {
 
 typealias CrabSwarm = [Int]
 
+func costOfFuel(from: Int, to: Int) -> Int {
+    let distance = abs(from-to)
+    return (distance)*(distance+1)/2
+}
+
 extension CrabSwarm {
     init(from: [String]) {
         self = quicksort(from.map { Int($0)! })
     }
     func costOfMoving(to: Int) -> Int {
-        return self.map({ abs($0 - to) }).reduce(0, +)
+        return self.map({ costOfFuel(from: $0, to: to) }).reduce(0, +)
     }
     func findBest() -> (Int, Int) {
         var best = (-1, Int.max)
-        var last = -1
-        for i in 0...self.count-1 {
-            if self[i] != last {
-                let c = self.costOfMoving(to: self[i])
-                if c < best.1 {
-                    best = (self[i], c)
-                }
-                last = self[i]
+        for i in 0...self[self.count-1] {
+            let c = self.costOfMoving(to: i)
+            print("Cost of \(i) if \(c)")
+            if c < best.1 {
+                best = (i, c)
             }
         }
         return best
