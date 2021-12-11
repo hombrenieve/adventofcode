@@ -4,6 +4,9 @@ typealias Point = (Int, Int)
 
 struct DumboOctopuses {
     var array: [[Int]]
+    var total: Int {
+        return array.count*array[0].count
+    }
     
 
     init(_ read: [String]) {
@@ -54,6 +57,16 @@ struct DumboOctopuses {
         }
         return totalFlashed
     }
+
+    mutating func findSynchStep() -> Int {
+        var flashed = 0
+        var step = 0
+        repeat {
+            flashed = self.nextStep()
+            step += 1
+        } while flashed != total
+        return step
+    }
 }
 
 var input: [String] = []
@@ -64,4 +77,4 @@ while let line = readLine() {
 
 var octopuses = DumboOctopuses(input)
 
-print("Calculate 100: \(octopuses.calculateFlashedIn(steps: 100))")
+print("All flashed in step: \(octopuses.findSynchStep())")
