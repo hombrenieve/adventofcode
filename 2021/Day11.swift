@@ -3,9 +3,12 @@ import Foundation
 typealias Point = (Int, Int)
 
 struct DumboOctopuses {
-    var array: [[Int]]
+    let array: [[Int]]
     var total: Int {
         return array.count*array[0].count
+    }
+    var flashed: Int {
+        return array.map({$0.filter({$0 == 0}).count}).reduce(0,+)
     }
     
 
@@ -13,59 +16,63 @@ struct DumboOctopuses {
         array = read.map({$0.map({$0.wholeNumberValue!})})
     }
 
+    init(other: [[Int]]) {
+        array = other
+    }
 
-    private mutating func increaseEnergy(_ point: Point) {
+
+    private func increaseEnergy(_ point: Point) -> DumboOctopuses {
         let (x, y) = point
         //check out of bounds
-        guard x >= 0, x < array[0].count, y >= 0, y < array.count else {return}
+        guard x >= 0, x < array[0].count, y >= 0, y < array.count else {return self}
         if array[y][x] < 10 { //has not flashed yet
-            array[y][x] += 1
-            if(array[y][x] == 10) {//it flashes
+            var copy = array
+            copy[y][x] += 1
+            var dumbo = DumboOctopuses(other: copy)
+            if(dumbo.array[y][x] == 10) {//it flashes
                 for i in -1...1 {
                     for j in -1...1 {
                         if j == 0 && i == 0 { continue }
-                        increaseEnergy((x+i, y+j))
+                        dumbo = dumbo.increaseEnergy((x+i, y+j))
                     }
                 }
             }
+            return dumbo
         }
+        return self
+    }
+
+    func reset() -> DumboOctopuses {
+        return DumboOctopuses(other: array.map({$0.map({if $0 == 10 { return 0 } else {return $0}})}))
     }
 
 
-    mutating func nextStep() -> Int {
+    func nextStep() -> DumboOctopuses {
+        var dumbo = DumboOctopuses(other: self.array)
         for j in 0...array.count-1 {
             for i in 0...array[j].count-1 {
-                increaseEnergy((i, j))
+                dumbo = dumbo.increaseEnergy((i, j))
             }
         }
-        var flashed = 0
-        for j in 0...array.count-1 {
-            for i in 0...array[j].count-1 {
-                if array[j][i] == 10 {
-                    flashed += 1
-                    array[j][i] = 0
-                }
-            }
-        }
-        return flashed
+        return dumbo.reset()
     }
 
-    mutating func calculateFlashedIn(steps: Int) -> Int {
-        var totalFlashed = 0
+    func calculateFlashedIn(steps: Int) -> DumboOctopuses {
+        var dumbo = self
         for _ in 1...steps {
-            totalFlashed += self.nextStep()
+            dumbo = dumbo.nextStep()
         }
-        return totalFlashed
+        return dumbo
     }
 
-    mutating func findSynchStep() -> Int {
-        var flashed = 0
+    func findSynchStep() -> (Int, DumboOctopuses) {
+        var dumbo = self
         var step = 0
         repeat {
-            flashed = self.nextStep()
+            dumbo = dumbo.nextStep()
             step += 1
-        } while flashed != total
-        return step
+        } while dumbo.flashed != self.total
+        return (step, dumbo)
     }
 }
 
@@ -75,6 +82,6 @@ while let line = readLine() {
     input.append(line)
 }
 
-var octopuses = DumboOctopuses(input)
+let octopuses = DumboOctopuses(input)
 
-print("All flashed in step: \(octopuses.findSynchStep())")
+print("All flashed in step: \(octopuses.findSynchStep().0)")
