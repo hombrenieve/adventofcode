@@ -12,6 +12,7 @@ class Node {
         return true
     }
     var visited: Bool = false
+    static var visitedTwice: Node? = nil
 
     init(_ theName: String) {
         name = theName
@@ -21,18 +22,39 @@ class Node {
         paths.append(node)
     }
 
+    func canVisit() -> Bool {
+        return self.isBig || self.visited == false || (self.visited == true && Node.visitedTwice == nil && name != "start")
+    }
+
+    func visit() {
+        if(visited == true && self.isBig == false) {
+            if Node.visitedTwice == nil {
+                Node.visitedTwice = self
+            }
+        }
+        visited = true
+    }
+
+    func unvisit() {        
+        if Node.visitedTwice === self {
+            Node.visitedTwice = nil
+            return
+        }
+        visited = false
+    }
+
     func findPaths() -> Int {
         if name == "end" {
             return 1
         }
-        visited = true
+        visit()
         var possibleWays = 0
         for next in paths {
-            if next.isBig || next.visited == false {
+            if next.canVisit() {
                 possibleWays += next.findPaths()
             }
         }
-        visited = false
+        unvisit()
         return possibleWays
     }
 }
