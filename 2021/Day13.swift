@@ -60,7 +60,7 @@ struct OrigamiPaper {
             maxX = max(i.x, maxX)
             maxY = max(i.y, maxY)
         }
-        var plotter = [[String]](repeating: [String](repeating: ".", count: maxX+1), count: maxY+1)
+        var plotter = [[String]](repeating: [String](repeating: " ", count: maxX+1), count: maxY+1)
         for value in dots {
             plotter[value.y][value.x] = "#"
         }
