@@ -51,6 +51,24 @@ struct OrigamiPaper {
             print("Unrecognized instruction")
         }
     }
+
+
+    func printer() {
+        var maxX = 0
+        var maxY = 0
+        for i in dots {
+            maxX = max(i.x, maxX)
+            maxY = max(i.y, maxY)
+        }
+        var plotter = [[String]](repeating: [String](repeating: ".", count: maxX+1), count: maxY+1)
+        for value in dots {
+            plotter[value.y][value.x] = "#"
+        }
+        for line in plotter {
+            print("\(line.reduce("", +))")
+        }
+    }
+
 }
 
 
@@ -70,6 +88,8 @@ while let line = readLine() {
 
 var paper = OrigamiPaper(dots)
 
-paper.apply(instruction: instructions[0])
+for ins in instructions {
+    paper.apply(instruction: ins)
+}
 
-print("Count: \(paper.dots.count)")
+paper.printer()
