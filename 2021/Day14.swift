@@ -111,7 +111,7 @@ for (_, rule) in rules {
     rule.right = rules[names.1]!
 }
 
-let steps = 10
+let steps = 40
 //Create counts
 for (k,_) in rules {
     pairCounts[k] = 0
