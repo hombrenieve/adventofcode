@@ -11,114 +11,124 @@ func quicksort<T: Comparable>(_ a: [T]) -> [T] {
     return quicksort(less) + equal + quicksort(greater)
 }
 
-class PolymerElement {
-    let name: Character
-    var next: PolymerElement?
-    var prev: PolymerElement?
-    var mirror: PolymerElement?
+typealias Counter = Dictionary<String, Int>
 
-    init(_ name: Character) {
-        self.name = name
-    }
-}
-
-func polymerToString(_ data: PolymerElement) -> String {
-    var result = "" + String(data.name)
-    var cursor = data
-    while let next = cursor.next {
-        result.append(String(next.name))
-        cursor = next
-    }
-    return result
-}
-
-struct Polymer {
-    var pTree: PolymerElement
-    var rules: Dictionary<String, Character> = [:]
-
-    init(_ initial: String) {
-        let chars = Array(initial)
-        pTree = PolymerElement(chars[0])
-        pTree.next = PolymerElement(chars[1])
-        var current = pTree.next!
-        current.prev = pTree
-        for i in 2..<chars.count {
-            let prev = current
-            current.next = PolymerElement(chars[i])
-            current = current.next!
-            current.prev = prev
-        }
-    }
-
-    mutating func addRule(pair: String, insert: Character) {
-        rules[pair] = insert
-    }
-
-    mutating func buildMirror() -> PolymerElement {
-        var cursor = pTree
-        let mirror = PolymerElement(pTree.name)
-        var prevMirror = mirror
-        pTree.mirror = mirror
-        while let next = cursor.next {
-            let nextMirror = PolymerElement(next.name)
-            nextMirror.prev = prevMirror
-            prevMirror.next = nextMirror
-            cursor = next
-            cursor.mirror = nextMirror
-            prevMirror = nextMirror            
-        }
-        return mirror
-
-    }
-
-    mutating func applyRules() {
-        let mirror = buildMirror()
-        var cursor = pTree
-        while let next = cursor.next {
-            let pair = String(cursor.name)+String(next.name)
-            if let insert = rules[pair] {
-                let newElement = PolymerElement(insert)
-                cursor.mirror!.next = newElement
-                newElement.prev = cursor.mirror
-                next.mirror!.prev = newElement
-                newElement.next = next.mirror
-            }
-            cursor = next
-        }
-        pTree = mirror
-    }
-
-    func calculateResult() -> Int {
-        var elementCount: Dictionary<Character,Int> = [:]
-        var cursor = pTree
-        elementCount[cursor.name] = 1
-        while let next = cursor.next {
-            if let currentCount = elementCount[next.name] {
-                elementCount[next.name] = currentCount+1
+extension Counter {
+    func merge(_ rhs: Counter) -> Counter {
+        var result = self
+        for (k, v) in rhs {
+            if let exist = self[k] {
+                result[k] = exist + v
             } else {
-                elementCount[next.name] = 1
+                result[k] = v
             }
-            cursor = next
         }
-        let counts = quicksort(Array(elementCount.values))
-        return counts.last! - counts.first!
+        return result
     }
 }
 
-var polymer = Polymer(readLine()!)
+typealias Rules = Dictionary<String, RuleGraph>
+
+extension Rules {
+    func countPairs(_ prev: Counter) -> Counter {
+        var counter: Counter = [:]
+        for (k,_) in self {
+            counter[k] = 0
+        }
+        for (_, r) in self {
+            counter[r.left!.pair]! += prev[r.pair]!
+            counter[r.right!.pair]! += prev[r.pair]!
+        }
+        return counter
+    }
+}
+
+class RuleGraph: Equatable {
+    let pair: String
+    let insert: String
+    var left: RuleGraph?
+    var right: RuleGraph?
+
+    init(_ pair: String, _ insert: String) {
+        self.pair = pair
+        self.insert = insert
+    }
+
+    static func ==(lhs: RuleGraph, rhs: RuleGraph) -> Bool {
+        return lhs.pair == rhs.pair
+    }
+    
+    func generate() -> (String, String) {
+        return (String(pair.first!)+insert, insert+String(pair.last!))
+    }
+}
+
+func countLetters(fromPairs: Counter) -> Counter {
+    var letterCounter: Counter = [:]
+    for (k, c) in fromPairs {
+        let key = Array(k)
+        for i in 0...1 {
+            let letter = String(key[i])
+            if let exist = letterCounter[letter] {
+                letterCounter[letter] = exist+c
+            } else {
+                letterCounter[letter] = c
+            }
+        }
+    }
+    return letterCounter
+}
+
+func calcResult(template: String, lettersFromPairs: Counter) -> Int {
+    var count = lettersFromPairs
+    count[String(template.first!)]! -= 1
+    count[String(template.last!)]! -= 1
+    count.forEach({ count[$0] = $1/2 })
+    count[String(template.first!)]! += 1
+    count[String(template.last!)]! += 1
+    let ordered = quicksort(Array(count.values))
+    return ordered.last! - ordered.first!
+}
+
+
+
+let polymerTemplate = Array(readLine()!)
 _ = readLine() //empty one
+
+var rules: Rules = [:]
+var pairCounts: Counter = [:]
 
 while let input = readLine() {
     let split = input.components(separatedBy: " -> ")
-    polymer.addRule(pair: split[0], insert: split[1].first!)
+    rules[split[0]] = RuleGraph(split[0], split[1])
 }
 
-print("Read: \(polymerToString(polymer.pTree))")
 
-let count = 10
-for i in 1...count {
-    print("Step \(i)/\(count)")
-    polymer.applyRules()
+
+for (_, rule) in rules {
+    let names = rule.generate()
+    rule.left = rules[names.0]!
+    rule.right = rules[names.1]!
 }
 
-print("Result: \(polymer.calculateResult())")
+let steps = 10
+//Create counts
+for (k,_) in rules {
+    pairCounts[k] = 0
+}
+
+//Starting pair counts
+for i in 0..<polymerTemplate.count-1 {
+    let pair = String(polymerTemplate[i..<i+2])
+    pairCounts[pair]! += 1
+}
+
+for _ in 1...steps {
+    pairCounts = rules.countPairs(pairCounts)
+}
+
+
+//print("Pair count: \(pairCounts)")
+let countFromPairs = countLetters(fromPairs: pairCounts)
+//print("Count: \(countFromPairs)")
+print("Result: \(calcResult(template: String(polymerTemplate), lettersFromPairs: countFromPairs))")
