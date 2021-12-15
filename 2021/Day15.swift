@@ -1,6 +1,26 @@
 import Foundation
 
-typealias Position = (Int, Int)
+struct Point: Hashable, Equatable {
+    let x : Int
+    let y : Int
+    init(_ x: Int, _ y: Int) {
+        self.x = x
+        self.y = y
+    }
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(x)
+        hasher.combine(y)
+    }
+    static func +(lhs: Point, rhs: Point) -> Point {
+        return Point(
+            lhs.x + rhs.x,
+            lhs.y + rhs.y
+        )
+    }
+    static func ==(lhs: Point, rhs: Point) -> Bool {
+        return lhs.x == rhs.x && lhs.y == rhs.y
+    }
+}
 
 
 class Node {
@@ -14,28 +34,35 @@ class Node {
 }
 
 struct CaveMap {
-    let data: [[Node]]
+    let data: [[Int]]
+    var discovered: Dictionary<Point, Node> = [:]
 
     init(_ data: [[Int]]) {
-        self.data = data.map({$0.map({Node($0)})})
+        self.data = data
     }
 
-    func node(_ pos: Position) -> Node? {
-        let (x, y) = pos
+    mutating func node(_ pos: Point) -> Node? {
+        let (x, y) = (pos.x, pos.y)
         guard x >= 0 && x < data[0].count,
             y >= 0 && y < data.count else {
                 return nil
             }
-        return data[y][x]
+        if let node = discovered[pos] {
+            return node
+        } else {
+            let node = Node(data[y][x])
+            discovered[pos] = node
+            return node
+        }
     }
 
-    func dijkstra() -> Int {
-        let end = (data[0].count-1, data.count-1)
-        var pos = (0,0)
+    mutating func dijkstra() -> Int {
+        let end = Point(data[0].count-1, data.count-1)
+        var pos = Point(0,0)
         node(pos)!.visited = true
         node(pos)!.distance = 0
 
-        var toVisit = [Position]()
+        var toVisit = [Point]()
         toVisit.append(pos)
 
         while ( !toVisit.isEmpty ) {
@@ -43,7 +70,7 @@ struct CaveMap {
             toVisit = toVisit.filter{ $0 != pos }
             node(pos)!.visited = true
             for incs in [(-1, 0), (1, 0), (0, -1), (0, 1)] {
-                let newPos = (pos.0+incs.0, pos.1+incs.1)
+                let newPos = Point(pos.x+incs.0, pos.y+incs.1)
                 if let connected = node(newPos) {
                     let dist = node(pos)!.distance + connected.weight
                     if dist < connected.distance {
@@ -74,6 +101,6 @@ while let input = readLine() {
     inputData.append(input)
 }
 
-let cave = CaveMap(inputData.map({$0.map({$0.wholeNumberValue!})}))
+var cave = CaveMap(inputData.map({$0.map({$0.wholeNumberValue!})}))
 
 print("Found easiest: \(cave.dijkstra())")
