@@ -34,6 +34,7 @@ class Node {
 }
 
 struct CaveMap {
+    let factor = 5
     let data: [[Int]]
     var discovered: Dictionary<Point, Node> = [:]
 
@@ -41,23 +42,32 @@ struct CaveMap {
         self.data = data
     }
 
+    private func createNode(_ pos: Point) -> Node {
+        let truePoint = Point(pos.x%data[0].count, pos.y%data.count)
+        let multiplier = pos.x/data[0].count + pos.y/data.count
+        let weightAux = data[truePoint.y][truePoint.x]+multiplier
+        let weight = weightAux > 9 ? (weightAux % 10)+1 : weightAux
+        //print("Create node: (\(pos.x), \(pos.y)) mult: \(multiplier) orig: (\(truePoint.x), \(truePoint.y)) w: \(data[truePoint.y][truePoint.x]) -> \(weight)")
+        return Node(weight)
+    }
+
     mutating func node(_ pos: Point) -> Node? {
         let (x, y) = (pos.x, pos.y)
-        guard x >= 0 && x < data[0].count,
-            y >= 0 && y < data.count else {
+        guard x >= 0 && x < data[0].count*factor,
+            y >= 0 && y < data.count*factor else {
                 return nil
             }
         if let node = discovered[pos] {
             return node
         } else {
-            let node = Node(data[y][x])
+            let node = createNode(pos)
             discovered[pos] = node
             return node
         }
     }
 
     mutating func dijkstra() -> Int {
-        let end = Point(data[0].count-1, data.count-1)
+        let end = Point(data[0].count*factor-1, data.count*factor-1)
         var pos = Point(0,0)
         node(pos)!.visited = true
         node(pos)!.distance = 0
