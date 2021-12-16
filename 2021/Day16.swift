@@ -14,14 +14,12 @@ extension String {
 struct Message {
     let data: [Character]
     var currentBit = 0
-    var packets: [Packet] = []
+    var packet: Packet? = nil
 
 
     init(_ msg: String) {
         self.data = Array(msg)
-        while let p = buildPacket() {
-            packets.append(p)
-        }
+        self.packet = buildPacket()
     }
 
     private mutating func buildLiteral(_ v: Int, _ t: Int) -> Packet {
@@ -35,9 +33,29 @@ struct Message {
             currentBit += 5
         }
         let number = Int(numberString, radix: 2)!
-        let p = Packet(v, t)
-        p.literal = number
+        let p = Literal(v, t, number)
         return p
+    }
+
+    private static func operatorFromCmd(_ v: Int, _ t: Int) -> Operator {
+        switch(t) {
+            case 0:
+                return Sum(v, t)
+            case 1:
+                return Product(v, t)
+            case 2:
+                return Min(v, t)
+            case 3:
+                return Max(v, t)
+            case 5:
+                return Gt(v, t)
+            case 6:
+                return Lt(v, t)
+            case 7:
+                return Eq(v, t)
+            default:
+                return Operator(v, t)
+        }
     }
 
     private mutating func buildOperator(_ v: Int, _ t: Int) -> Packet {
@@ -47,26 +65,23 @@ struct Message {
             let length = Int(String(data[currentBit...currentBit+14]), radix: 2)!
             currentBit += 15
             let origin = currentBit
-            let p = Packet(v, t)
+            let p = Message.operatorFromCmd(v, t)
             while length != currentBit-origin {
-                p.subPackets.append(buildPacket()!)
+                p.subPackets.append(buildPacket())
             }
             return p
         } else {
             let count = Int(String(data[currentBit...currentBit+10]), radix: 2)!
             currentBit += 11
-            let p = Packet(v, t)
+            let p = Message.operatorFromCmd(v, t)
             for _ in 1...count {
-                p.subPackets.append(buildPacket()!)
+                p.subPackets.append(buildPacket())
             }
             return p
         }        
     }
 
-    private mutating func buildPacket() -> Packet? {
-        if data.count-currentBit < 11 {
-            return nil
-        }
+    private mutating func buildPacket() -> Packet {
         let v = Int(String(data[currentBit...currentBit+2]), radix: 2)!
         let t = Int(String(data[currentBit+3...currentBit+5]), radix: 2)!
         currentBit += 6
@@ -82,23 +97,83 @@ struct Message {
 
 class Packet {
     let version: Int
-    let type: Int
-    var literal: Int? = nil
-    var subPackets: [Packet] = []
+    let type: Int    
 
     init(_ v: Int, _ t: Int) {
         self.version = v
         self.type = t        
     }
+
+    func resolve() -> Int {
+        return 0
+    }
 }
 
-func sumV(accum: Int, packets: [Packet]) -> Int {
-    if packets.count == 0 {
-        return accum
+class Literal: Packet {
+    var literal: Int = 0
+
+    init(_ v: Int, _ t: Int, _ literal: Int) {
+        super.init(v, t)
+        self.literal = literal
+    }    
+
+    override func resolve() -> Int {
+        return literal
     }
-    var local = accum+packets[0].version
-    local += sumV(accum: 0, packets: packets[0].subPackets)
-    return sumV(accum: local, packets: Array(packets.dropFirst()))
+}
+
+class Operator: Packet {
+    var subPackets: [Packet] = []
+}
+
+class Sum: Operator {
+    override func resolve() -> Int {
+        var sum = 0
+        for p in self.subPackets {
+            sum += p.resolve()
+        }
+        return sum
+    }
+}
+
+class Product: Operator {
+    override func resolve() -> Int {
+        var prod = 1
+        for p in self.subPackets {
+            prod *= p.resolve()
+        }
+        return prod
+    }
+}
+
+class Min: Operator {
+    override func resolve() -> Int {
+        return self.subPackets.map({ $0.resolve() }).min()!
+    }
+}
+
+class Max: Operator {
+    override func resolve() -> Int {
+        return self.subPackets.map({ $0.resolve() }).max()!
+    }
+}
+
+class Gt: Operator {
+    override func resolve() -> Int {
+        return self.subPackets[0].resolve() > self.subPackets[1].resolve() ? 1 : 0
+    }
+}
+
+class Lt: Operator {
+    override func resolve() -> Int {
+        return self.subPackets[0].resolve() < self.subPackets[1].resolve() ? 1 : 0
+    }
+}
+
+class Eq: Operator {
+    override func resolve() -> Int {
+        return self.subPackets[0].resolve() == self.subPackets[1].resolve() ? 1 : 0
+    }
 }
 
 func convertToBinary(hex: String) -> String {
@@ -112,6 +187,4 @@ func convertToBinary(hex: String) -> String {
 
 let msg = Message(convertToBinary(hex: readLine()!))
 
-let sum = sumV(accum: 0, packets: msg.packets)
-
-print("Result: \(sum)")
+print("Result: \(msg.packet!.resolve())")
