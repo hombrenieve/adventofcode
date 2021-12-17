@@ -118,6 +118,21 @@ struct TargetArea {
         }
         return bestY
     }
+
+    func calculateHits() -> Int {
+        var hits = 0
+        for y in self.minY...100 {
+            for x in 1...self.maxX {
+                let v = Velocity(x, y)
+                let (valid, _) = succeed(v)
+                if valid {
+                    hits += 1
+                    print("Success with \(v)")
+                }
+            }
+        }
+        return hits
+    }
 }
 
 func createTargetArea(_ input: String) -> TargetArea {
@@ -127,4 +142,4 @@ func createTargetArea(_ input: String) -> TargetArea {
 
 let ta = createTargetArea(readLine()!)
 
-print("Result: \(ta.calculateMaxY())")
+print("Result: \(ta.calculateHits())")
