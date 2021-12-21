@@ -39,7 +39,7 @@ class SFN {
     }
 
     static func +(lhs: SFN, rhs: SFN) -> SFN {
-        let sfn = SFN(lhs, rhs)
+        let sfn = SFN(lhs.copy(), rhs.copy())
         sfn.reduce()
         return sfn
     }
@@ -160,6 +160,22 @@ class SFN {
         }
         return mag
     }
+
+
+    func copy() -> SFN {
+        if let v = getValue() {
+            return SFN(v)
+        }
+        var lc: SFN? = nil
+        var rc: SFN? = nil
+        if let l = self.left {
+            lc = l.copy()
+        }
+        if let r = self.right {
+            rc = r.copy()
+        }
+        return SFN(lc!, rc!)
+    }
 }
 
 struct LEAF {
@@ -200,11 +216,13 @@ while let line = readLine() {
     numbers.append(parseInput(Array(line), 0).0!)
 }
 
-var sum: SFN = numbers.first!
-for nr in numbers.dropFirst() {
-    sum = sum + nr
+var largest = 0
+for i in 0..<numbers.count {
+    for j in 0..<numbers.count {
+        guard i != j else { continue }
+        let sum = numbers[i]+numbers[j]
+        largest = max(largest, sum.magnitude())
+    }
 }
 
-print("Sum is: \(sum.description())")
-
-print("Magnitude: \(sum.magnitude())")
+print("Magnitude: \(largest)")
