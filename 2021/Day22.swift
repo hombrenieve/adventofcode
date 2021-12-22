@@ -27,7 +27,6 @@ struct Cube {
     let xlimits: [Int]
     let ylimits: [Int]
     let zlimits: [Int]
-    var state: Bool = false
     var volume: Int {
         let xlength = abs(xlimits[1]-xlimits[0])+1
         let ylength = abs(ylimits[1]-ylimits[0])+1
@@ -48,11 +47,6 @@ struct Cube {
         self.xlimits = xs
         self.ylimits = ys
         self.zlimits = zs
-    }
-
-    init(state: Bool, xs: [Int], ys: [Int], zs: [Int]) {
-        self.init(xs: xs, ys: ys, zs: zs)
-        self.state = state
     }
 
     func contains(point: Cubit) -> Bool {
@@ -76,7 +70,7 @@ struct Cube {
 
     func intersect(other: Cube) -> Cube? {
         if other.contains(other: self) {
-            return Cube(state: other.state, xs: self.xlimits, ys: self.ylimits, zs: self.zlimits)
+            return Cube(xs: self.xlimits, ys: self.ylimits, zs: self.zlimits)
         }
         if self.contains(other: other) {
             return other
@@ -103,7 +97,7 @@ struct Cube {
         let xlim = (self.xlimits + other.xlimits).sorted()
         let ylim = (self.ylimits + other.ylimits).sorted()
         let zlim = (self.zlimits + other.zlimits).sorted()
-        return Cube(state: other.state, xs: Array(xlim[1...2]), ys: Array(ylim[1...2]), zs: Array(zlim[1...2]))
+        return Cube(xs: Array(xlim[1...2]), ys: Array(ylim[1...2]), zs: Array(zlim[1...2]))
     }
 }
 
@@ -117,24 +111,29 @@ struct Reactor {
     }
 
     mutating func apply(step: Bool, xs: [Int], ys: [Int], zs: [Int]) {
-        let cube = Cube(state: step, xs: xs, ys: ys, zs: zs)
+        let cube = Cube(xs: xs, ys: ys, zs: zs)
+        var intersToAppend = [Cube]()
         if Reactor.inRegion(cube: cube) {
             for c in areas {
                 if let inter = c.intersect(other: cube) {
-                    intersections.append(inter)
+                    intersToAppend.append(inter)
                 }
             }
             if step {
+                areas.removeAll(where: { cube.contains(other: $0) })
                 areas.append(cube)
+            }
+            for i in intersToAppend {
+                intersections.removeAll(where: { i.contains(other: $0) })
+                intersections.append(i)
             }
         }
     }
 
     func onlineCount() -> Int {
-        let onVolume = areas.filter({ $0.state }).map({$0.volume}).reduce(0,+)
-        let intersectOnVolume = intersections.filter({ $0.state }).map({$0.volume}).reduce(0,+)
-        let intersectOffVolume = intersections.filter({ !$0.state }).map({$0.volume}).reduce(0,+)
-        return onVolume-intersectOnVolume-intersectOffVolume
+        let onVolume = areas.map({$0.volume}).reduce(0,+)
+        let intersectOffVolume = intersections.map({$0.volume}).reduce(0,+)
+        return onVolume-intersectOffVolume
     }
 
 }
@@ -150,7 +149,7 @@ var reactor = Reactor()
 while let input = readLine() {
     let (step, xs, ys, zs) = createCommand(from: input)
     reactor.apply(step: step, xs: xs, ys: ys, zs: zs)
-    print("Areas: \(reactor.areas.map({ ($0.volume, $0.state) })) Intersect: \(reactor.intersections.map({ ($0.volume, $0.state) }))")
+    print("Areas: \(reactor.areas.map({ $0.volume })) Intersect: \(reactor.intersections.map({ $0.volume }))")
 }
 
 print("After all steps there are: \(reactor.onlineCount())")
