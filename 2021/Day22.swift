@@ -29,8 +29,10 @@ struct Cube {
     let zlimits: [Int]
     var state: Bool = false
     var volume: Int {
-        let length = (xlimits[1]-xlimits[0])+1
-        return length*length*length
+        let xlength = abs(xlimits[1]-xlimits[0])+1
+        let ylength = abs(ylimits[1]-ylimits[0])+1
+        let zlength = abs(zlimits[1]-zlimits[0])+1
+        return xlength*ylength*zlength
     }
 
     init(xs: [Int], ys: [Int], zs: [Int]) {
@@ -54,9 +56,13 @@ struct Cube {
     }
 
     func contains(point: Cubit) -> Bool {
-        return self.xlimits[0] <= point.x && point.x <= self.xlimits[1] &&
-            self.ylimits[0] <= point.y && point.y <= self.ylimits[1] &&
-            self.zlimits[0] <= point.z && point.z <= self.zlimits[1]
+        return self.xlimits[0] < point.x && point.x < self.xlimits[1] &&
+            self.ylimits[0] < point.y && point.y < self.ylimits[1] &&
+            self.zlimits[0] < point.z && point.z < self.zlimits[1]
+    }
+
+    static func ==(lhs: Cube, rhs: Cube) -> Bool {
+        return lhs.xlimits == rhs.xlimits && lhs.ylimits == rhs.ylimits && lhs.zlimits == rhs.zlimits
     }
 
     func contains(other: Cube) -> Bool {
@@ -73,6 +79,9 @@ struct Cube {
             return Cube(state: other.state, xs: self.xlimits, ys: self.ylimits, zs: self.zlimits)
         }
         if self.contains(other: other) {
+            return other
+        }
+        if self == other {
             return other
         }
         var intersection = false
@@ -115,16 +124,17 @@ struct Reactor {
                     intersections.append(inter)
                 }
             }
-            areas.append(cube)
+            if step {
+                areas.append(cube)
+            }
         }
     }
 
     func onlineCount() -> Int {
         let onVolume = areas.filter({ $0.state }).map({$0.volume}).reduce(0,+)
-        let offVolume = areas.filter({ !$0.state }).map({$0.volume}).reduce(0,+)
         let intersectOnVolume = intersections.filter({ $0.state }).map({$0.volume}).reduce(0,+)
         let intersectOffVolume = intersections.filter({ !$0.state }).map({$0.volume}).reduce(0,+)
-        return onVolume-intersectOnVolume-offVolume+intersectOffVolume
+        return onVolume-intersectOnVolume-intersectOffVolume
     }
 
 }
