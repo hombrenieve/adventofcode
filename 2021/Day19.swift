@@ -1,6 +1,6 @@
 import Foundation
 
-struct Point: Hashable, Comparable {
+struct Point:  Hashable, Equatable {
     let x : Int
     let y : Int
     let z : Int
@@ -9,34 +9,74 @@ struct Point: Hashable, Comparable {
         self.y = y
         self.z = z
     }
+
     func hash(into hasher: inout Hasher) {
-        hasher.combine(x)
-        hasher.combine(y)
-        hasher.combine(z)
+        hasher.combine(abs(self.x))
+        hasher.combine(abs(self.y))
+        hasher.combine(abs(self.z))
     }
+
+    static func -(lhs: Point, rhs: Point) -> Point {
+        return Point(lhs.x - rhs.x, lhs.y - rhs.y, lhs.z - rhs.z)
+    }
+
+    static func +(lhs: Point, rhs: Point) -> Point {
+        return Point(lhs.x + rhs.x, lhs.y + rhs.y, lhs.z + rhs.z)
+    }
+
+    func transformation(to: Point) -> Point {
+        return Point(abs(to.x)-abs(x), abs(to.y)-abs(y), abs(to.z)-abs(z))
+    }
+
     static func ==(lhs: Point, rhs: Point) -> Bool {
-        return lhs.x == rhs.x && lhs.y == rhs.y && lhs.z == rhs.z
-    }
-    static func < (lhs: Point, rhs: Point) -> Bool {
-        return lhs.x < rhs.x && lhs.y < rhs.y && lhs.z < rhs.z
+        return abs(lhs.x) == abs(rhs.x) && abs(lhs.y) == abs(rhs.y) && abs(lhs.z) == abs(rhs.z)
     }
 }
 
 struct ScannerMap {
     let id: Int
-    let points: [Point]
+    var origin: Point
+    var points: [Point]
 
     init(id: Int) {
         self.id = id
-        var points: [Point] = []
+        self.origin = Point(0, 0, 0)
+        self.points = []
         while let input = readLine() {
             if input == "" {
                 break
             }
             let comps = input.components(separatedBy: ",")
-            points.append(Point(Int(comps[0])!, Int(comps[1])!, Int(comps[2])!))
+            self.points.append(Point(Int(comps[0])!, Int(comps[1])!, Int(comps[2])!))
         }
-        self.points = points
+    }
+
+    mutating func moveOrigin(to: Point) {
+        let transformation = to - self.origin
+        self.origin = to
+        for i in 0..<self.points.count {
+            self.points[i] = self.points[i] + transformation
+        }
+    }
+
+    func matchingPoints(other: ScannerMap) -> Set<Point> {
+        let lhs = Set<Point>(self.points)
+        let rhs = Set<Point>(other.points)
+        return lhs.intersection(rhs)
+    }
+
+    func findOrigin(toTransform: ScannerMap) -> Point? {
+        var transforming = toTransform
+        for i in 0..<self.points.count {
+            for j in 0..<transforming.points.count {
+                let transform = self.points[i].transformation(to: transforming.points[j])
+                transforming.moveOrigin(to: transform)
+                if self.matchingPoints(other: transforming).count >= 12 {
+                    return transform
+                }
+            }
+        }
+        return nil
     }
 }
 
@@ -48,4 +88,10 @@ while let input = readLine() {
     if comps[0] == "---" {
         scanners.append(ScannerMap(id: Int(comps[2])!))
     }
+}
+
+if let movedPoint = scanners[0].findOrigin(toTransform: scanners[1]) {
+    print("Found transformation: \(movedPoint)")
+} else {
+    print("Not found!")
 }
