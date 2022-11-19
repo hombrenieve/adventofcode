@@ -2,5 +2,5 @@
 mod common;
 
 fn main() {
-    println!("Example: {}", common::fake());
+    //println!("Example: {}", common::read_line());
 }
