@@ -6,21 +6,29 @@ pub fn read_line() -> Option<String> {
     }
 }
 
-pub fn read_until_eof() -> String {
+fn read_until_n(n: usize, sep: char) -> String {
     let mut line = String::new();
     let mut file = String::new();
-    while let Ok(n) = std::io::stdin().read_line(&mut line) {
-        if n == 0 {
+    while let Ok(read) = std::io::stdin().read_line(&mut line) {
+        if read == n {
             file.pop();
             return file;
         }
         line.pop();
         file.push_str(line.as_str());
-        file.push(' ');
+        file.push(sep);
         line.clear();
     }
     //In case of Error
     file
+}
+
+pub fn read_until_empty_line() -> String {
+    read_until_n(1, ' ')
+}
+
+pub fn read_until_eof() -> String {
+    read_until_n(0, ' ')
 }
 
 
