@@ -6,12 +6,12 @@ use std::collections::*;
 #[derive(Debug)]
 struct Tile {
     id: i32,
-    data: Vec<String>
+    data: Vec<Vec<char>>
 }
 
 impl Tile {
     fn new(id: i32, data: &Vec<&str>) -> Tile {
-        Tile {id: id, data: data.iter().map(|s| s.to_string()).collect() }
+        Tile {id: id, data: data.iter().map(|s| s.chars().collect()).collect() }
     }
 
     fn read() -> Option<Tile> {
@@ -24,8 +24,18 @@ impl Tile {
 
     fn flip(&mut self) {
         for i in 0..self.data.len()-1 {
-            self.data[i] = self.data[i].chars().rev().collect();
+            self.data[i] = self.data[i].iter().rev().map(|c| c.to_owned()).collect();
         }
+    }
+
+    fn rotate(&mut self) {
+        let mut new_data = self.data.to_owned();
+        for i in 0..=self.data.len()-1 {
+            for j in 0..=self.data[i].len()-1 {
+                new_data[j][self.data[i].len()-1-i] = self.data[i][j];
+            }
+        }
+        self.data = new_data;
     }
 }
 
@@ -33,8 +43,8 @@ impl Tile {
 fn main() {
     if let Some(t) = Tile::read().as_mut() {
         println!("Read: {:?}", t);
-        t.flip();
-        println!("Flipped: {:?}", t);
+        t.rotate();
+        println!("Roteted: {:?}", t);
     } 
     // while let Some(t) = Tile::read() {
     //     println!("Read tile {:?}", t);
