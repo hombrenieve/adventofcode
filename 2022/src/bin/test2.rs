@@ -1,7 +1,7 @@
 #[path="../common.rs"]
 mod common;
 use common::*;
-use std::collections::*;
+use std::{collections::*, borrow::BorrowMut};
 
 #[derive(Debug)]
 struct Tile {
@@ -41,13 +41,12 @@ impl Tile {
 
 
 fn main() {
-    if let Some(t) = Tile::read().as_mut() {
-        println!("Read: {:?}", t);
-        t.rotate();
-        println!("Roteted: {:?}", t);
-    } 
-    // while let Some(t) = Tile::read() {
-    //     println!("Read tile {:?}", t);
-    // }
-    // println!("No more tiles");
+    let mut tiles = HashMap::new();
+    while let Some(t) = Tile::read() {
+        tiles.insert(t.id, t);
+    }
+    let t = tiles.get_mut(&2311).unwrap();
+    println!("Acquired: {:?}", t);
+    t.rotate();
+    println!("After rotated inline: {:?}", tiles.get(&2311).unwrap());
 }
