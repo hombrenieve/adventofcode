@@ -3,15 +3,32 @@ mod common;
 use common::*;
 use std::{collections::*, borrow::BorrowMut};
 
+enum Side {
+    Up = 0,
+    Down = 1,
+    Left = 2,
+    Right = 3
+}
+
+impl Side {
+    fn i(self) -> usize {
+        self as usize
+    }
+}
+
 #[derive(Debug)]
 struct Tile {
     id: i32,
-    data: Vec<Vec<char>>
+    data: Vec<Vec<char>>,
+    neighbors: [i32; 4]
 }
 
 impl Tile {
     fn new(id: i32, data: &Vec<&str>) -> Tile {
-        Tile {id: id, data: data.iter().map(|s| s.chars().collect()).collect() }
+        Tile {id: id, 
+            data: data.iter().map(|s| s.chars().collect()).collect(),
+            neighbors: [-1; 4]
+        }
     }
 
     fn read() -> Option<Tile> {
@@ -20,6 +37,20 @@ impl Tile {
             return Some(Tile::new(id, &read_until_empty_line().split(' ').collect()));
         }
         None
+    }
+
+    //Use closure to avoid copying vector
+    fn get_side(&self, s: Side) -> Vec<char> {
+        match s {
+            Side::Up => self.data[0].to_owned(),
+            Side::Down => self.data.last().unwrap().to_owned(),
+            Side::Left => self.data.iter().map(|row| row[0]).collect::<Vec<char>>(),
+            Side::Right => self.data.iter().map(|row| row.last().unwrap().to_owned()).collect::<Vec<char>>()
+        }
+    }
+
+    fn match_with(&mut self, other: &mut Tile) -> bool {
+        false
     }
 
     fn flip(&mut self) {
@@ -47,6 +78,7 @@ fn main() {
     }
     let t = tiles.get_mut(&2311).unwrap();
     println!("Acquired: {:?}", t);
-    t.rotate();
-    println!("After rotated inline: {:?}", tiles.get(&2311).unwrap());
+    //t.rotate();
+    //println!("After rotated inline: {:?}", tiles.get(&2311).unwrap());
+    println!("Up: {:?}, Down: {:?}, Left: {:?}, Right: {:?}", t.get_side(Side::Up), t.get_side(Side::Down), t.get_side(Side::Left), t.get_side(Side::Right));
 }
