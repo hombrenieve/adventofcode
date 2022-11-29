@@ -14,6 +14,14 @@ impl Side {
     fn i(self) -> usize {
         self as usize
     }
+    fn from(num: usize) -> Side {
+        match num {
+            0 => Side::Up,
+            1 => Side::Down,
+            2 => Side::Left,
+            _ => Side::Right
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -50,7 +58,24 @@ impl Tile {
     }
 
     fn match_with(&mut self, other: &mut Tile) -> bool {
+        for local_side in 0..3 {
+            if self.neighbors[local_side] == -1 {
+                for other_side in 0..3 {
+                    if other.neighbors[other_side] == -1 {
+                        if self.get_side(Side::from(local_side)) == other.get_side(Side::from(other_side)) {
+                            self.neighbors[local_side] = other.id;
+                            other.neighbors[other_side] = self.id;
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
         false
+    }
+
+    fn num_neighbors(&self) -> usize {
+        self.neighbors.iter().fold(0, |acc, el| if *el == -1 { acc } else { acc+1 })
     }
 
     fn flip(&mut self) {
@@ -70,15 +95,47 @@ impl Tile {
     }
 }
 
+fn do_match(t: &mut Tile, o: &mut Tile) {
+    t.match_with(o);
+
+    t.rotate();
+    t.match_with(o);
+    t.rotate();
+    t.match_with(o);
+    t.rotate();
+    t.match_with(o);
+    t.rotate();
+    t.match_with(o);
+
+    t.flip();
+
+    t.match_with(o);
+    t.rotate();
+    t.match_with(o);
+    t.rotate();
+    t.match_with(o);
+    t.rotate();
+    t.match_with(o);
+    t.rotate();
+    t.match_with(o);
+    
+    t.flip();
+}
 
 fn main() {
-    let mut tiles = HashMap::new();
+    let mut tiles = Vec::new();
+    let mut matched = Vec::new();
     while let Some(t) = Tile::read() {
-        tiles.insert(t.id, t);
+        tiles.push(t);
     }
-    let t = tiles.get_mut(&2311).unwrap();
-    println!("Acquired: {:?}", t);
-    //t.rotate();
-    //println!("After rotated inline: {:?}", tiles.get(&2311).unwrap());
-    println!("Up: {:?}, Down: {:?}, Left: {:?}, Right: {:?}", t.get_side(Side::Up), t.get_side(Side::Down), t.get_side(Side::Left), t.get_side(Side::Right));
+    while tiles.len() > 0 {
+        let mut t = tiles.pop().unwrap();
+        for o in &mut tiles {
+            do_match(t.borrow_mut(), o);
+        }
+        matched.push(t);
+    }
+    for t in matched {
+        println!("Id: {}, neighbours: {}", t.id, t.num_neighbors());
+    }
 }
