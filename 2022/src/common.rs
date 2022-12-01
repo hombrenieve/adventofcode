@@ -13,6 +13,8 @@ fn read_until_n(n: usize, sep: char) -> String {
         if read == n {
             file.pop();
             return file;
+        } else if read == 0 {
+            return file;
         }
         line.pop();
         file.push_str(line.as_str());
