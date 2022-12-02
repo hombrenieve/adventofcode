@@ -15,25 +15,28 @@ fn to_pairs(inp: &str) -> Vec<(char,char)> {
 }
 
 
-// A == X == ROCK -> 1
-// B == Y == PAPER -> 2
-// C == Z == SCISS -> 3
+// A == ROCK -> 1
+// B == PAPER -> 2
+// C == SCISS -> 3
+// X == lose == 0
+// Y == draw == 3
+// Z == win == 6
 // 0 lose 3 draw 6 win
 
 fn calculate_step_score(step: &(char, char)) -> i32 {
     match step {
         //Win
-        ('C', 'X') => 6+1,
-        ('A', 'Y') => 6+2,
+        ('C', 'Z') => 6+1,
+        ('A', 'Z') => 6+2,
         ('B', 'Z') => 6+3,
         //Lose
         ('B','X') => 0+1,
-        ('C','Y') => 0+2,
-        ('A','Z') => 0+3,
+        ('C','X') => 0+2,
+        ('A','X') => 0+3,
         //Draw
-        (_, 'X') => 3+1,
-        (_, 'Y') => 3+2,
-        (_, 'Z') => 3+3,
+        ('A', 'Y') => 3+1,
+        ('B', 'Y') => 3+2,
+        ('C', 'Y') => 3+3,
         //Should not reach
         (_, _) => { println!("Invalid match"); 0 }
     }
