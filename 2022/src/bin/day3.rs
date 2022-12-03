@@ -1,9 +1,9 @@
 #[path="../common.rs"]
 mod common;
 
-fn find_match(comp1: &Vec<char>, comp2: &Vec<char>) -> char {
-    for c in comp2 {
-        if comp1.contains(c) {
+fn find_match(comp1: &Vec<char>, comp2: &Vec<char>, comp3: &Vec<char>) -> char {
+    for c in comp3 {
+        if comp1.contains(c) && comp2.contains(c) {
             return c.to_owned();
         }
     }
@@ -22,8 +22,11 @@ fn get_priority(c: &char) -> u32 {
 fn main() {
     let mut rucksacs = Vec::new();
     while let Some(strrack) = common::read_line() {
-        rucksacs.push((strrack[..strrack.len()/2].chars().collect::<Vec<char>>(), strrack[strrack.len()/2..].chars().collect::<Vec<char>>()));
+        rucksacs.push(strrack.chars().collect::<Vec<char>>());
     }
-    println!("Read: {:?}", rucksacs);
-    println!("Priorities: {:?}", rucksacs.iter().map(|comp| { find_match(&comp.0, &comp.1)}).map(|c| { get_priority(&c)}).sum::<u32>());
+    let mut prios = Vec::new();
+    for i in (0..rucksacs.len()).step_by(3) {
+        prios.push(get_priority(&find_match(&rucksacs[i], &rucksacs[i+1], &rucksacs[i+2])));
+    }
+    println!("Priorities: {}", prios.iter().sum::<u32>());
 }
