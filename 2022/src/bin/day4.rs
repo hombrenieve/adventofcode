@@ -4,8 +4,8 @@ use std::ops::RangeInclusive;
 mod common;
 
 fn range_contained(a: &RangeInclusive<u32>, b: &RangeInclusive<u32>) -> bool {
-    a.contains(b.start()) && a.contains(b.end()) ||
-    b.contains(a.start()) && b.contains(a.end())
+    a.contains(b.start()) || a.contains(b.end()) ||
+    b.contains(a.start()) || b.contains(a.end())
 }
 
 fn assignments_contained(assignments: &Vec<(RangeInclusive<u32>, RangeInclusive<u32>)>) -> usize {
