@@ -33,15 +33,11 @@ impl Ship {
     fn apply(&mut self, cmd: &str) {
         let cmd_split = cmd.split(' ').collect::<Vec<&str>>();
         let times = cmd_split[1].parse::<usize>().unwrap();
-        let from = cmd_split[3].parse::<usize>().unwrap();
-        let to = cmd_split[5].parse::<usize>().unwrap();
-
-        println!("applying move from {} to {}, times {}", from, to, times);
-
-        for _ in 0..times {
-            let cr = self.stacks[from-1].pop().unwrap();
-            self.stacks[to-1].push(cr);
-        }
+        let from = &mut self.stacks[cmd_split[3].parse::<usize>().unwrap()-1];
+        
+        let mut moved = from.drain(from.len()-times..).collect::<Vec<char>>();
+        println!("Moving: {:?}", moved);
+        self.stacks[cmd_split[5].parse::<usize>().unwrap()-1].append(moved.as_mut());
     }
 
     fn get_msg(&self) -> String {
