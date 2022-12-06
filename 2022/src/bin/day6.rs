@@ -1,7 +1,7 @@
 #[path="../common.rs"]
 mod common;
 
-const MARKER_SIZE: usize = 4;
+const MARKER_SIZE: usize = 14;
 
 fn has_repeated_chars(msg: &str) -> bool {
     for i in 0..msg.len() {
