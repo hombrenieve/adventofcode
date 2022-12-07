@@ -81,7 +81,9 @@ fn calculate_dir_sizes(tree: &mut Node) -> usize {
     }
 }
 
-fn filter_nodes(tree: &Node, predicate: fn(&Node) -> bool) -> Vec<&Node> {
+fn filter_nodes<'a, F>(tree: &'a Node, predicate: &F)  -> Vec<&'a Node> where
+    F: Fn(&Node) -> bool
+{
     let mut result = Vec::new();
     for c in &tree.children {
         result.append(&mut filter_nodes(c, predicate));
@@ -93,8 +95,17 @@ fn filter_nodes(tree: &Node, predicate: fn(&Node) -> bool) -> Vec<&Node> {
 }
 
 fn calculate_sum_below_100000(tree: &Node) -> usize {
-    let nodes = filter_nodes(tree, |n| n.node_type == Type::dir && n.size.unwrap() <= 100000);
+    let nodes = filter_nodes(tree, &|n| n.node_type == Type::dir && n.size.unwrap() <= 100000);
     nodes.iter().map(|n| n.size.unwrap()).sum()
+}
+
+fn find_dir_to_free(tree: &Node) -> usize {
+    const TOTAL: usize = 70000000;
+    const NEEDED: usize = 30000000;
+    let unused = TOTAL - tree.size.unwrap();
+    let to_free = NEEDED - unused;
+    let nodes = filter_nodes(tree, &|n| n.node_type == Type::dir && n.size.unwrap() >= to_free);
+    nodes.iter().map(|n| n.size.unwrap()).min().unwrap()
 }
 
 fn main() {
@@ -122,5 +133,5 @@ fn main() {
         }
     }
     calculate_dir_sizes(&mut root);
-    println!("Size: {}", calculate_sum_below_100000(&root));
+    println!("Size of dir to free: {}", find_dir_to_free(&root));
 }
