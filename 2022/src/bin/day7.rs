@@ -56,7 +56,6 @@ impl Node {
     }
 }
 
-
 //Only needed if removing individual nodes
 impl Drop for Node {
     fn drop(&mut self) {
@@ -67,6 +66,36 @@ impl Drop for Node {
     }
 }
 
+
+fn calculate_dir_sizes(tree: &mut Node) -> usize {
+    match (*tree).size {
+        Some(size) => size,
+        None => {
+            let mut size: usize = 0;
+            for c in &mut tree.children {
+                size += calculate_dir_sizes(c);
+            }
+            tree.size = Some(size);
+            size
+        }
+    }
+}
+
+fn filter_nodes(tree: &Node, predicate: fn(&Node) -> bool) -> Vec<&Node> {
+    let mut result = Vec::new();
+    for c in &tree.children {
+        result.append(&mut filter_nodes(c, predicate));
+    }
+    if predicate(tree) {
+        result.push(tree);
+    }
+    result
+}
+
+fn calculate_sum_below_100000(tree: &Node) -> usize {
+    let nodes = filter_nodes(tree, |n| n.node_type == Type::dir && n.size.unwrap() <= 100000);
+    nodes.iter().map(|n| n.size.unwrap()).sum()
+}
 
 fn main() {
     let mut root = Node::new_dir("/", ptr::null_mut());
@@ -92,5 +121,6 @@ fn main() {
             }
         }
     }
-    println!("Read: {:?}", root);
+    calculate_dir_sizes(&mut root);
+    println!("Size: {}", calculate_sum_below_100000(&root));
 }
