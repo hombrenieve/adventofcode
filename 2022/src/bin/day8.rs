@@ -4,6 +4,7 @@ mod common;
 #[derive(Debug)]
 struct Tree {
     height: u32,
+    score: u32,
     visible: Option<bool>
 }
 
@@ -11,6 +12,7 @@ impl Tree {
     fn new(height: u32) -> Tree {
         Tree {
             height: height,
+            score: 0,
             visible: None
         }
     }
@@ -91,6 +93,46 @@ fn count_visibles(grid: &Grid) -> i32 {
         row.iter().map(|t| if t.visible.unwrap() { 1 } else { 0 }).sum::<i32>()).sum()
 }
 
+fn calculate_score_dir(tree: &Tree, current: (i32, i32), grid: &Grid, dir: &Direction) -> u32 {
+    let mut score: u32 = 0;
+    let mut dir_next = current;    
+    loop {
+        dir_next = dir.pos_in_dir(&dir_next);
+        if !is_pos_in_grid(&dir_next, grid) {
+            return score;
+        }
+        let tree_next = &grid[dir_next.0 as usize][dir_next.1 as usize];
+        if tree.height <= tree_next.height {
+            return score+1;
+        } else {
+            score += 1;
+        }
+    }    
+}
+
+fn calculate_score_tree(tree_pos: (i32, i32), grid: &Grid) -> u32 {
+    let tree = &grid[tree_pos.0 as usize][tree_pos.1 as usize];
+    calculate_score_dir(tree, tree_pos, grid, &Direction::Up) *
+    calculate_score_dir(tree, tree_pos, grid, &Direction::Down) *
+    calculate_score_dir(tree, tree_pos, grid, &Direction::Left) *
+    calculate_score_dir(tree, tree_pos, grid, &Direction::Right)
+}
+
+fn calculate_scores(grid: &mut Grid) {
+    let rows = grid.len();
+    let cols = grid[0].len();
+    for r in 0..rows {
+        for c in 0..cols {
+            grid[r][c].score = calculate_score_tree((r as i32, c as i32), grid);
+        }
+    }
+}
+
+fn get_best_score(grid: &Grid) -> u32 {
+    grid.iter().map(|row| 
+        row.iter().map(|t| t.score).max().unwrap()).max().unwrap()
+}
+
 fn main() {
     let mut grid = Grid::new();
     while let Some(line) = common::read_line() {
@@ -100,8 +142,7 @@ fn main() {
         }
         grid.push(row);
     }
-    setup_grid(&mut grid);
-    calculate_visibles(&mut grid);
+    calculate_scores(&mut grid);
     println!("Read: {:?}", grid);
-    println!("Visibles {}", count_visibles(&grid));
+    println!("Best score {}", get_best_score(&grid));
 }
