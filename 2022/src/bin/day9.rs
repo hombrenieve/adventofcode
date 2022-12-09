@@ -105,15 +105,22 @@ fn calculate_tail_position(head_pos: &Position, tail_prev_pos: &Position) -> Pos
     }
 }
 
-fn calculate_tail_trail(head_trail: &Vec<Position>) -> HashSet<Position> {
-    let mut ttrail = HashSet::new();
+fn calculate_tail_trail(head_trail: &Vec<Position>) -> Vec<Position> {
+    let mut ttrail = Vec::new();
     let mut current = Position::new(0,0);
+    ttrail.push(current.clone());
     for head_pos in head_trail {
         let new_pos = calculate_tail_position(head_pos, &current);
-        ttrail.insert(new_pos.clone());
+        if new_pos != current {
+            ttrail.push(new_pos.clone());
+        }
         current = new_pos;
     }
     ttrail
+}
+
+fn uniq(trail: &Vec<Position>) -> HashSet<&Position> {
+    trail.iter().collect::<HashSet<&Position>>()
 }
 
 fn main() {
@@ -133,5 +140,5 @@ fn main() {
     }
     htrail.push(orig);
     let ttrail = calculate_tail_trail(&htrail);
-    println!("Tail pos: {}", ttrail.len());
+    println!("Tail pos: {}", uniq(&ttrail).len());
 }
