@@ -123,6 +123,14 @@ fn uniq(trail: &Vec<Position>) -> HashSet<&Position> {
     trail.iter().collect::<HashSet<&Position>>()
 }
 
+fn calculate_tail_trail_for_knot(head_trail: &Vec<Position>, knot: i32) -> Vec<Position> {
+    if knot == 0 {
+        return head_trail.clone();
+    }
+    let current_tail = calculate_tail_trail(head_trail);
+    calculate_tail_trail_for_knot(&current_tail, knot-1)
+}
+
 fn main() {
     let mut htrail = Vec::new();
     let mut orig = Position::new(0, 0);
@@ -139,6 +147,6 @@ fn main() {
         orig = trail;
     }
     htrail.push(orig);
-    let ttrail = calculate_tail_trail(&htrail);
+    let ttrail = calculate_tail_trail_for_knot(&htrail, 9);
     println!("Tail pos: {}", uniq(&ttrail).len());
 }
