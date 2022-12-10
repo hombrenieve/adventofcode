@@ -66,14 +66,60 @@ impl Computer<'_> {
 
 }
 
+struct Screen {
+    lines: [Vec<char>; 6],
+    current_line: usize,
+    current_pixel: usize
+}
+
+impl Screen {
+    fn new() -> Screen {
+        Screen {
+            lines: [vec![' ';40], vec![' ';40], vec![' ';40], vec![' ';40], vec![' ';40], vec![' ';40]],
+            current_line: 0,
+            current_pixel: 0
+        }
+    }
+
+    fn next_pixel(&mut self) {
+        if self.current_pixel == 39 {
+            self.current_pixel = 0;
+            self.current_line += 1;
+        } else {
+            self.current_pixel += 1;
+        }
+    }
+
+    fn light_pixel(&mut self) {
+        self.lines[self.current_line][self.current_pixel] = '#';
+    }
+}
+
+impl std::fmt::Display for Screen {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        for i in 0..self.lines.len() {
+            writeln!(f, "{}", self.lines[i].iter().collect::<String>());
+        }
+        std::fmt::Result::Ok(())       
+    }
+}
+
+
+fn compute_screen(computer: &mut Computer, screen: &mut Screen) {
+    for _ in 1..240 {
+        let sprite = computer.register_x-1..=computer.register_x+1;
+        if sprite.contains(&(screen.current_pixel as i32))  {
+            screen.light_pixel();
+        }
+        computer.next_cycle();
+        screen.next_pixel();
+    }
+}
+
 fn main() {
     let input = common::read_until_eof();
     let mut computer = Computer::new(input.split(' ').collect::<Vec<&str>>());
-    let mut final_sum = 0;
-    for check in [20,60,100,140,180,220] {
-        let signal = computer.compute_until(check).get_signal_strength();
-        println!("Compute {} is {}", check, signal);
-        final_sum += signal;
-    }
-    println!("Result: {final_sum}");
+    let mut screen = Screen::new();
+    compute_screen(&mut computer, &mut screen);
+    println!("{screen}");
 }
