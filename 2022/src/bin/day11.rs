@@ -3,10 +3,11 @@ use std::collections::HashMap;
 #[path="../common.rs"]
 mod common;
 
+const LCM: usize = 9699690; //This is manually calculated from my input (could be automated but..)
 
 struct Monkey<F, G>
 {
-    items: Vec<i32>,
+    items: Vec<usize>,
     inspected: usize,
     operation: F,
     test: G
@@ -19,26 +20,26 @@ impl<F,G> std::fmt::Debug for Monkey<F,G> {
 }
 
 
-fn get_func_from_op(op: Vec<&str>) -> Box<dyn Fn(i32) -> i32> {
+fn get_func_from_op(op: Vec<&str>) -> Box<dyn Fn(usize) -> usize> {
     if op[6] == "+" {
         if op[7] == "old" {
-            return Box::new(|x| x + x);
+            return Box::new(|x| (x + x) % LCM);
         } else {
-            let par = op[7].parse::<i32>().expect("Error parsing");
-            return Box::new(move |x| x + par);
+            let par = op[7].parse::<usize>().expect("Error parsing");
+            return Box::new(move |x| (x + par) % LCM);
         }
     } else {
         if op[7] == "old" {
-            return Box::new(|x| x * x);
+            return Box::new(|x| ((x as u128 * x as u128) % LCM as u128) as usize);
         } else {
-            let par = op[7].parse::<i32>().expect("Error parsing");
-            return Box::new(move |x| x * par);
+            let par = op[7].parse::<usize>().expect("Error parsing");
+            return Box::new(move |x| (x * par) % LCM);
         }
     }
 }
 
-fn get_func_from_test(test: Vec<&str>) -> impl Fn(i32) -> usize {
-    let div = test[5].parse::<i32>().expect("Error parsing");
+fn get_func_from_test(test: Vec<&str>) -> impl Fn(usize) -> usize {
+    let div = test[5].parse::<usize>().expect("Error parsing");
     let trueb = test[15].parse::<usize>().expect("Error parsing");
     let falseb = test[25].parse::<usize>().expect("Error parsing");
     move |x| {
@@ -50,8 +51,8 @@ fn get_func_from_test(test: Vec<&str>) -> impl Fn(i32) -> usize {
 }
 
 
-fn load() -> Monkey<impl Fn(i32) -> i32, impl Fn(i32) -> usize> {
-    let starting = common::read_line().unwrap()[18..].split(", ").map(|n| n.parse::<i32>().unwrap()).collect::<Vec<i32>>();
+fn load() -> Monkey<impl Fn(usize) -> usize, impl Fn(usize) -> usize> {
+    let starting = common::read_line().unwrap()[18..].split(", ").map(|n| n.parse::<usize>().unwrap()).collect::<Vec<usize>>();
     let op_str = common::read_line().unwrap();
     let op = op_str.split(' ').collect::<Vec<&str>>();
     let test_str = common::read_n_lines(3, " ");
@@ -64,14 +65,13 @@ fn load() -> Monkey<impl Fn(i32) -> i32, impl Fn(i32) -> usize> {
     }
 }
 
-fn play_turn(monkeys: &mut HashMap<usize, Monkey<impl Fn(i32) -> i32, impl Fn(i32) -> usize>>) {
+fn play_turn(monkeys: &mut HashMap<usize, Monkey<impl Fn(usize) -> usize, impl Fn(usize) -> usize>>) {
     for i in 0..monkeys.len() {
         let mut monkey = monkeys.remove(&i).unwrap();
         while !monkey.items.is_empty() {
             let mut item = monkey.items.remove(0);
             item = (monkey.operation)(item);
             monkey.inspected += 1;
-            item /= 3;
             let dest = (monkey.test)(item);
             if dest == i {
                 monkey.items.push(item);
@@ -101,6 +101,6 @@ fn main() {
         } else { break; }
     }
     println!("Monkeys: {:?}", monkeys);
-    for _ in 1..=20 { play_turn(&mut monkeys) }
+    for _ in 1..=10000 { play_turn(&mut monkeys) }
     println!("Monkey bussiness value: {}", monkey_bussiness(&monkeys));
 }
