@@ -33,6 +33,14 @@ pub fn read_until_eof() -> String {
     read_until_n(0, ' ')
 }
 
+pub fn read_n_lines(n: u32, sep: &str) -> String {
+    let mut buffer = read_line().unwrap();
+    for i in 1..n {
+        buffer.push_str(sep);
+        buffer.push_str(&read_line().unwrap()[..]);
+    }
+    buffer
+}
 
 pub fn to_ints(line: &str, sep: &str) -> Vec<i32> {
     line.split(sep).map(|x| x.parse::<i32>().unwrap()).collect()
