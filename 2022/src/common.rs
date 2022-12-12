@@ -1,8 +1,20 @@
+use std::{
+    cmp,
+    ops::{Add, AddAssign},
+};
+
 pub fn read_line() -> Option<String> {
     let mut line = String::new();
     match std::io::stdin().read_line(&mut line) {
-        Ok(n) => { if n == 0 { None } else { line.pop(); Some(line) } },
-        Err(_) => None
+        Ok(n) => {
+            if n == 0 {
+                None
+            } else {
+                line.pop();
+                Some(line)
+            }
+        }
+        Err(_) => None,
     }
 }
 
@@ -44,4 +56,46 @@ pub fn read_n_lines(n: u32, sep: &str) -> String {
 
 pub fn to_ints(line: &str, sep: &str) -> Vec<i32> {
     line.split(sep).map(|x| x.parse::<i32>().unwrap()).collect()
+}
+
+#[derive(Debug, Clone, Eq, Hash)]
+pub struct Position {
+    pub x: i32,
+    pub y: i32,
+}
+
+impl PartialEq for Position {
+    fn eq(&self, other: &Self) -> bool {
+        self.x == other.x && self.y == other.y
+    }
+}
+
+impl Add for Position {
+    type Output = Self;
+
+    fn add(self, other: Self) -> Self {
+        Self {
+            x: self.x + other.x,
+            y: self.y + other.y,
+        }
+    }
+}
+
+impl AddAssign for Position {
+    fn add_assign(&mut self, other: Self) {
+        *self = Self {
+            x: self.x + other.x,
+            y: self.y + other.y,
+        };
+    }
+}
+
+impl Position {
+    pub fn new(x: i32, y: i32) -> Position {
+        Position { x: x, y: y }
+    }
+
+    pub fn distance(&self, other: &Self) -> i32 {
+        cmp::max((self.x - other.x).abs(), (self.y - other.y).abs())
+    }
 }
