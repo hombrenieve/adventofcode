@@ -1,7 +1,7 @@
 #[path="../common.rs"]
 mod common;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Eq, PartialEq)]
 enum Element {
     List(Vec<Element>),
     Num(i32)
@@ -81,22 +81,31 @@ fn compare(left: &Element, right: &Element) -> Option<bool> {
     }
 }
 
+fn sort_cmp(left: &Element, right: &Element) -> std::cmp::Ordering {
+    match compare(left, right) {
+        None => std::cmp::Ordering::Equal,
+        Some(true) => std::cmp::Ordering::Less,
+        Some(false) => std::cmp::Ordering::Greater
+    }
+}
+
 fn main() {
     let mut packets = Vec::new();
-    let mut correct_indexes = Vec::new();
     while let Some(line1) = common::read_line() {
         let line2 = common::read_line().unwrap();
         common::read_line();
-        packets.push((load_list(&line1[..], &1).0, load_list(&line2[..], &1).0));
+        packets.push(load_list(&line1[..], &1).0);
+        packets.push(load_list(&line2[..], &1).0);
     }
+    let divider1 = Element::List(vec![Element::List(vec![Element::Num(2)])]);
+    let divider2 = Element::List(vec![Element::List(vec![Element::Num(6)])]);
+    packets.push(divider1.clone());
+    packets.push(divider2.clone());
+    packets.sort_by(|l, r| sort_cmp(l, r));
     for i in 0..packets.len() {
-        if let Some(value) = compare(&packets[i].0, &packets[i].1) {
-            if value {
-                correct_indexes.push(i+1);
-            }
-        } else {
-            panic!("Returned None in index {}", i+1);
-        }
+        println!("{} -> {:?}", i, packets[i]);
     }
-    println!("Result is: {}", correct_indexes.iter().sum::<usize>());
+    let in1 = packets.iter().position(|x| x.to_owned() == divider1).unwrap();
+    let in2 = packets.iter().position(|x| x.to_owned() == divider2).unwrap();
+    println!("Result is {}", (in1+1)*(in2+1));
 }
