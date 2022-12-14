@@ -43,7 +43,8 @@ fn expand_line(p1: &common::Position, p2: &common::Position) -> Vec<common::Posi
     result
 }
 
-fn next_move(wall: &HashMap<common::Position, Tile>, cur: &common::Position) -> common::Position {
+fn next_move(wall: &HashMap<common::Position, Tile>, floor: i32, cur: &common::Position) -> common::Position {
+    if (cur.to_owned() + ONE_DOWN).y == floor { return cur.to_owned(); }
     if !wall.contains_key(&(cur.to_owned() + ONE_DOWN)) {
         return cur.to_owned() + ONE_DOWN;
     }
@@ -56,13 +57,14 @@ fn next_move(wall: &HashMap<common::Position, Tile>, cur: &common::Position) -> 
     cur.to_owned()
 }
 
-fn fill_with_sand(wall: &mut HashMap<common::Position, Tile>, ymax: i32) {
+fn fill_with_sand(wall: &mut HashMap<common::Position, Tile>, floor: i32) {
     let mut cur = SAND_SOURCE;
-    while cur.y < ymax {
+    loop {
         let prev = cur.clone();
-        cur = next_move(wall, &cur);
+        cur = next_move(wall, floor, &cur);
         if cur == prev {
-            wall.insert(cur, Tile::Sand);
+            wall.insert(cur.clone(), Tile::Sand);
+            if cur == SAND_SOURCE { break; }
             cur = SAND_SOURCE;
         }
     }
@@ -82,6 +84,6 @@ fn main() {
     }
     let maxy = wall.iter().map(|(k, _)| k.y).max().unwrap();
     println!("Max y {}", maxy);
-    fill_with_sand(&mut wall, maxy);
+    fill_with_sand(&mut wall, maxy+2);
     println!("Sand grains: {}", wall.iter().filter(|(_, v)| matches!(v, Tile::Sand)).collect::<Vec<_>>().len());
 }
