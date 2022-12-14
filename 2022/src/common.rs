@@ -81,6 +81,17 @@ impl Add for Position {
     }
 }
 
+impl<'a, 'b> Add<&'b Position> for &'a Position {
+    type Output = Position;
+
+    fn add(self, other: &'b Position) -> Position {
+        Position {
+            x: self.x + other.x,
+            y: self.y + other.y,
+        }
+    }
+}
+
 impl AddAssign for Position {
     fn add_assign(&mut self, other: Self) {
         *self = Self {
@@ -95,7 +106,21 @@ impl Position {
         Position { x: x, y: y }
     }
 
+    pub fn from_str(strp: &str) -> Position {
+        let spl = strp.split(",").map(|x| x.parse::<i32>().unwrap()).collect::<Vec<i32>>();
+        Position::new(spl[0], spl[1])
+    }
+
     pub fn distance(&self, other: &Self) -> i32 {
         cmp::max((self.x - other.x).abs(), (self.y - other.y).abs())
+    }
+
+    pub fn line_to(&self, other: &Self) -> Vec<Position> {
+        let r = |a,b| { if a < b { a..=b } else { b..=a }  };
+        if self.x == other.x { //Vertical
+            r(self.y, other.y).map(|y| Position::new(self.x, y)).collect()
+        } else { //Horizontal
+            r(self.x, other.x).map(|x| Position::new(x, self.y)).collect()
+        }
     }
 }
