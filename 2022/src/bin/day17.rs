@@ -146,10 +146,39 @@ impl Game {
         }
 
     }
+
+    fn play_until_ground(&mut self) {
+        loop {
+            //New rock
+            self.current = self.prototypes[self.shape_idx].transform(&Position::new(3, self.tower_height+4));
+            self.shape_idx = (self.shape_idx + 1) % self.prototypes.len();
+            loop {
+                self.apply_stream();
+                if !self.apply_down() {
+                    break;
+                }
+            }
+            if self.cave.iter().filter(|p| p.y == self.tower_height).count() == 7 {
+                break;
+            }
+        }
+    }
 }
 
 fn main() {
     let mut game = Game::new(common::read_line().unwrap().chars().collect());
-    game.play_until(2022);
-    println!("Max height: {}", game.tower_height);
+    game.play_until_ground();
+    let (initial_reminder, initial_height) = (game.fallen_rocks, game.tower_height as u128);
+    game.play_until_ground();
+    let last_tower_heigt = game.tower_height as usize;
+    let (rep_factor_rocks, rep_factor_height) = (game.fallen_rocks - initial_reminder, (game.tower_height as u128) - initial_height);
+    let target: u128 = 1000000000000;
+    let target_save_initial = target - (initial_reminder as u128);
+    let factor = target_save_initial / (rep_factor_rocks as u128);
+    let reminder = target_save_initial % (rep_factor_rocks as u128);
+    game.play_until(game.fallen_rocks + (reminder as usize));
+    let final_rem_height = ((game.tower_height as usize) - last_tower_heigt) as u128;
+    let total_height = initial_height + factor * rep_factor_height + final_rem_height;
+
+    println!("Max height: {}", total_height);
 }
