@@ -3,12 +3,34 @@ use std::{collections::{HashSet, btree_set::Intersection, HashMap}, cmp::min_by}
 #[path="../common.rs"]
 mod common;
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
+struct Metadata {
+    visited: bool,
+    cost: i32,
+    gain: i32
+}
+
+impl Metadata {
+    fn clear(&mut self) {
+        self.visited = false;
+        self.cost = 0;
+        self.gain = 0;
+    }
+
+    fn update(&mut self, minutes: i32, cost: i32, rate: i32) {
+        self.cost = cost;
+        self.gain = (minutes - cost) * rate;
+        self.visited = true;
+    }
+}
+
+#[derive(Debug)]
 struct Valve {
     name: String,
     open: bool,
     rate: i32,
-    tunnels: Vec<String>
+    tunnels: Vec<String>,
+    meta: Metadata
 }
 
 impl Valve{
@@ -17,18 +39,13 @@ impl Valve{
             name: String::from(name),
             open: false,
             rate: rate,
-            tunnels: tunnels
+            tunnels: tunnels,
+            meta: Metadata { visited: false, cost: 0, gain: 0 }
         }
     }
 }
 
-enum Action {
-    Open,
-    Move(String),
-    Stall
-}
-
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 struct Volcano {
     minutes: i32,
     pressure: usize,
@@ -45,76 +62,59 @@ impl Volcano {
         self.minutes == 0
     }
 
-    fn end_turn(&mut self) {
-        self.minutes -= 1;
-        self.pressure += self.releasing() as usize;
+    fn execute(&mut self) {
+        //Get best action
+        let mut v_gain = self.valves.iter().filter(|(_, v)| v.meta.cost <= self.minutes).map(|(k, v)| (k.to_owned(), v.meta.gain.to_owned())).collect::<Vec<(String, i32)>>();
+        v_gain.sort_by_key(|(_, g)| *g);
+        let v = self.valves.get_mut(&v_gain.last().unwrap().0).unwrap();
+        //println!("Time {}, Go {}, Cost {}, Gain {}", self.minutes, v.name, v.meta.cost, v.meta.gain);
+        println!("Gains: {:?}", v_gain);
+        self.minutes -= v.meta.cost;
+        self.current = v.name.to_owned();
+        v.open = true;
+        self.pressure += v.meta.gain as usize;
     }
 
-    fn play_turn(&mut self, action: &Action) {
-        match action {
-            Action::Open => self.valves.get_mut(&self.current).unwrap().open = true,
-            Action::Move(valve) => self.current = valve.to_owned(),
-            Action::Stall => {}
+    fn calculate_gains(&mut self) {
+        //First clear metadata
+        self.valves.iter_mut().for_each(|(_, v)| v.meta.clear());
+        //BFS calculating gain
+        let mut q = Vec::new();
+        let mut v = self.valves.remove(&self.current).unwrap();
+        if !v.open {
+            v.meta.update(self.minutes, 1, v.rate);
+        } else {
+            v.meta.update(self.minutes, 1, 0);
         }
-        self.end_turn();
-    }
-}
-
-struct DTNode {
-    action: Action,
-    state: Volcano,
-    weight: i32,
-    visited: bool,
-    children: Vec<DTNode>
-}
-
-impl DTNode {
-    fn new(action: Action, initial_state: &Volcano) -> DTNode {
-        let mut state = initial_state.to_owned();
-        state.play_turn(&action);
-        let weight = state.releasing();
-        DTNode {
-            action: action,
-            state: state,
-            weight: weight,
-            visited: false,
-            children: Vec::new()
-        }
-    }
-
-    fn expand_dt(&mut self) {
-        if !self.state.is_end() && self.children.is_empty() {
-            let valve = self.state.valves.get(&self.state.current).unwrap();
-            if !valve.open {
-                self.children.push(DTNode::new(Action::Open, &self.state));
+        q.push(v);
+        while !q.is_empty() {
+            let v = q.pop().unwrap();
+            for ch in &v.tunnels {
+                if let Some(mut vt) = self.valves.remove(ch) {
+                    if !vt.meta.visited {
+                        if !vt.open {
+                            vt.meta.update(self.minutes, v.meta.cost+1, vt.rate);
+                        } else {
+                            vt.meta.update(self.minutes, v.meta.cost, 0);
+                        }
+                        q.push(vt);
+                    } else {
+                        self.valves.insert(vt.name.to_owned(), vt);
+                    }
+                }
             }
-            valve.tunnels.iter().for_each(|t| self.children.push(DTNode::new(Action::Move(t.to_owned()), &self.state)));
-            self.children.push(DTNode::new(Action::Stall, &self.state));
+            self.valves.insert(v.name.to_owned(), v);
+        }
+    }
+
+    fn play(&mut self) {
+        while !self.is_end() {
+            self.calculate_gains();
+            //println!("After gains: {:?}", self.valves);
+            self.execute();
         }
     }
 }
-
-fn get_best_play(volcano: &Volcano) -> usize {
-    let mut best_play:usize = 0;
-    let mut decision_tree = DTNode{ action: Action::Stall, state: volcano.to_owned(), weight: 0, visited: true, children: Vec::new()};
-    let mut q = Vec::new();
-    q.push(&mut decision_tree);
-    while !q.is_empty() {
-        let mut dt = q.pop().unwrap();
-        dt.expand_dt();
-        if dt.children.is_empty() {
-            best_play = std::cmp::max(best_play, dt.state.pressure);
-        }
-        for ndt in &mut dt.children {
-            if !ndt.visited {
-                ndt.visited = true;
-                q.push(ndt);
-            }
-        }
-    }
-    best_play
-}
-
 
 fn main() {
     let mut volcano = Volcano { minutes: 30, pressure: 0, current: String::from(""), valves: HashMap::new()};
@@ -134,6 +134,7 @@ fn main() {
             volcano.current = String::from(name);
         }
     }
-    println!("Read: {:?}", volcano);
-    println!("Best play: {}", get_best_play(&volcano));
+    //println!("Read: {:?}", volcano);
+    volcano.play();
+    println!("Pressure released: {}", volcano.pressure);
 }
