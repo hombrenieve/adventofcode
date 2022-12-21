@@ -5,12 +5,17 @@ mod common;
 
 #[derive(Debug)]
 struct Metadata {
+    open: bool,
     visited: bool,
     cost: i32,
     gain: i32
 }
 
 impl Metadata {
+    fn new() -> Metadata {
+        Metadata { open: false, visited: false, cost: 0, gain: 0 }
+    }
+
     fn clear(&mut self) {
         self.visited = false;
         self.cost = 0;
@@ -27,97 +32,94 @@ impl Metadata {
 #[derive(Debug)]
 struct Valve {
     name: String,
-    open: bool,
     rate: i32,
-    tunnels: Vec<String>,
-    meta: Metadata
+    tunnels: Vec<String>
 }
 
 impl Valve{
     fn new(name: &str, rate: i32, tunnels: Vec<String>) -> Valve {
         Valve {
             name: String::from(name),
-            open: false,
             rate: rate,
-            tunnels: tunnels,
-            meta: Metadata { visited: false, cost: 0, gain: 0 }
+            tunnels: tunnels
         }
     }
 }
 
 #[derive(Debug)]
-struct Volcano {
+struct Volcano<'a> {
     minutes: i32,
     pressure: usize,
     current: String,
-    valves: HashMap<String, Valve>
+    valves: &'a HashMap<String, Valve>, //No write
 }
 
-impl Volcano {
-    fn releasing(&self) -> i32 {
-        self.valves.iter().map(|(_, v)| if v.open { v.rate } else { 0 }).sum()
-    }
-
+impl<'a> Volcano<'a> {
     fn is_end(&self) -> bool {
         self.minutes == 0
     }
 
-    fn execute(&mut self) {
+    fn execute(&mut self, meta: &mut HashMap<String, Metadata>) {
         //Get best action
-        let mut v_gain = self.valves.iter().filter(|(_, v)| v.meta.cost <= self.minutes).map(|(k, v)| (k.to_owned(), v.meta.gain.to_owned())).collect::<Vec<(String, i32)>>();
+        let mut v_gain = meta.iter().filter(|(_, m)| m.cost <= self.minutes).map(|(k, m)| (k.to_owned(), m.gain.to_owned())).collect::<Vec<(String, i32)>>();
         v_gain.sort_by_key(|(_, g)| *g);
-        let v = self.valves.get_mut(&v_gain.last().unwrap().0).unwrap();
+        let m = meta.get_mut(&v_gain.last().unwrap().0).unwrap();
         //println!("Time {}, Go {}, Cost {}, Gain {}", self.minutes, v.name, v.meta.cost, v.meta.gain);
         println!("Gains: {:?}", v_gain);
-        self.minutes -= v.meta.cost;
-        self.current = v.name.to_owned();
-        v.open = true;
-        self.pressure += v.meta.gain as usize;
+        self.minutes -= m.cost;
+        self.current = v_gain.last().unwrap().0.to_owned();
+        m.open = true;
+        self.pressure += m.gain as usize;
     }
 
-    fn calculate_gains(&mut self) {
+    fn calculate_gains(&mut self, meta: &mut HashMap<String, Metadata>) {
         //First clear metadata
-        self.valves.iter_mut().for_each(|(_, v)| v.meta.clear());
+        meta.iter_mut().for_each(|(_, m)| m.clear());
         //BFS calculating gain
         let mut q = Vec::new();
-        let mut v = self.valves.remove(&self.current).unwrap();
-        if !v.open {
-            v.meta.update(self.minutes, 1, v.rate);
+        let v = self.valves.get(&self.current).unwrap();
+        let mut m = meta.remove(&self.current).unwrap();
+        if !m.open {
+            m.update(self.minutes, 1, v.rate);
         } else {
-            v.meta.update(self.minutes, 1, 0);
+            m.update(self.minutes, 1, 0);
         }
-        q.push(v);
+        q.push((v, m));
         while !q.is_empty() {
-            let v = q.pop().unwrap();
+            let (v, m) = q.pop().unwrap();
             for ch in &v.tunnels {
-                if let Some(mut vt) = self.valves.remove(ch) {
-                    if !vt.meta.visited {
-                        if !vt.open {
-                            vt.meta.update(self.minutes, v.meta.cost+1, vt.rate);
+                if let Some(vt) = self.valves.get(ch) {
+                    if let Some(mut mt) = meta.remove(&vt.name) {
+                        if !mt.visited {
+                            if !mt.open {
+                                mt.update(self.minutes, m.cost+1, vt.rate);
+                            } else {
+                                mt.update(self.minutes, m.cost, 0);
+                            }
+                            q.push((vt, mt));
                         } else {
-                            vt.meta.update(self.minutes, v.meta.cost, 0);
+                            meta.insert(vt.name.to_owned(), mt);
                         }
-                        q.push(vt);
-                    } else {
-                        self.valves.insert(vt.name.to_owned(), vt);
                     }
                 }
             }
-            self.valves.insert(v.name.to_owned(), v);
+            meta.insert(v.name.to_owned(), m);
         }
     }
 
     fn play(&mut self) {
+        let mut meta = self.valves.iter().map(|(k,_)| (k.to_owned(), Metadata::new())).collect::<HashMap<String, Metadata>>();
         while !self.is_end() {
-            self.calculate_gains();
+            self.calculate_gains(&mut meta);
             //println!("After gains: {:?}", self.valves);
-            self.execute();
+            self.execute(&mut meta);
         }
     }
 }
 
 fn main() {
-    let mut volcano = Volcano { minutes: 30, pressure: 0, current: String::from(""), valves: HashMap::new()};
+    let mut valves = HashMap::new();
+    let mut starting = String::from("");
     while let Some(line) = common::read_line() {
         let mut tokens = line.replace("Valve ", "");
         tokens = tokens.replace("rate=", "");
@@ -129,11 +131,12 @@ fn main() {
         let rate = sp.next().unwrap().parse::<i32>().unwrap();
         sp.next(); sp.next();sp.next(); sp.next();
         let tunnels = sp.next().unwrap().split(',').map(|t| String::from(t)).collect::<Vec<String>>();
-        volcano.valves.insert(String::from(name), Valve::new(name, rate, tunnels));
-        if volcano.current.is_empty() {
-            volcano.current = String::from(name);
+        valves.insert(String::from(name), Valve::new(name, rate, tunnels));
+        if starting.is_empty() {
+            starting = String::from(name);
         }
     }
+    let mut volcano = Volcano { minutes: 30, pressure: 0, current: starting, valves: &valves};
     //println!("Read: {:?}", volcano);
     volcano.play();
     println!("Pressure released: {}", volcano.pressure);
