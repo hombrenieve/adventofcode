@@ -45,11 +45,11 @@ impl Element {
 }
 
 unsafe fn vec_to_list(vec: &Vec<i32>) -> Vec<Element> {
-    let mut res = Vec::new();
+    let mut res = Vec::with_capacity(vec.len());
     let mut iter = vec.iter();
     res.push(Element::new(*iter.next().unwrap(), std::ptr::null_mut()));
     while let Some(num) = iter.next() {
-        let mut el = Element::new(*num, res.last_mut().unwrap());
+        let el = Element::new(*num, res.last_mut().unwrap());
         res.push(el);   
         res.last_mut().unwrap().prev_element().next = res.last_mut().unwrap();    
     }
@@ -60,7 +60,7 @@ unsafe fn vec_to_list(vec: &Vec<i32>) -> Vec<Element> {
 }
 
 unsafe fn list_to_vec(list: &Element, len: usize) -> Vec<i32> {
-    let mut res = Vec::new();
+    let mut res = Vec::with_capacity(len);
     let mut el = list;
     for _ in 0..len {
         res.push(el.num);
@@ -71,36 +71,29 @@ unsafe fn list_to_vec(list: &Element, len: usize) -> Vec<i32> {
 
 unsafe fn mix_file(encrypted: &Vec<i32>) -> Vec<i32> {
     let mut elements = vec_to_list(encrypted);
-    let mut el = &mut elements[0];
-    let mut moved = encrypted.len();
-    while moved > 0 {
-        let mut next = el.next_element() as *mut Element;
+    for el in &mut elements {
         if !el.moved {
             let mut prev_dest = el.adv(encrypted.len());
-            if prev_dest == el {
+            let mut next_dest = (*prev_dest).next_element();
+            if prev_dest == el || (next_dest as *mut Element) == el {
                 el.moved = true;
-                moved -= 1;
-                el = el.next_element();
+                println!("Happened with element {:?}, prev: {:?}, next: {:?}", el, *prev_dest, next_dest);
                 continue;
             }
 
             //Remove from previous location
-            el.prev_element().next = el.next;
-            (*next).prev = el.prev_element();
+            el.prev_element().next = el.next_element();
+            el.next_element().prev = el.prev_element();
+
 
             //insert in destination
-            let mut next_dest = (*prev_dest).next_element();
             (*prev_dest).next = el;
             el.next = next_dest;
             next_dest.prev = el;
             el.moved = true;
-            moved -= 1;
-            println!("Moved {}", moved);
         }
-        el = (*next).prev_element().next_element();
     }
-
-    list_to_vec(el.next_element(), encrypted.len())
+    list_to_vec(&elements[0], encrypted.len())
 }
 
 fn get_coordinates(msg: &Vec<i32>) -> i32 {
@@ -108,6 +101,7 @@ fn get_coordinates(msg: &Vec<i32>) -> i32 {
     let c1 = (opos+1000) % msg.len();
     let c2 = (opos+2000) % msg.len();
     let c3 = (opos+3000) % msg.len();
+    println!("Opos {}, C1 {}, C2 {}, C3 {}", opos, msg[c1], msg[c2], msg[c3]);
     msg[c1]+msg[c2]+msg[c3]
 }
 
