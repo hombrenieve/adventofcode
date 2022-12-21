@@ -3,7 +3,7 @@ use std::{collections::{HashSet, btree_set::Intersection, HashMap}, cmp::min_by}
 #[path="../common.rs"]
 mod common;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Metadata {
     open: bool,
     visited: bool,
@@ -46,12 +46,13 @@ impl Valve{
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 struct Volcano<'a> {
     minutes: i32,
     pressure: usize,
     current: String,
     valves: &'a HashMap<String, Valve>, //No write
+    meta: HashMap<String, Metadata>
 }
 
 impl<'a> Volcano<'a> {
@@ -59,11 +60,11 @@ impl<'a> Volcano<'a> {
         self.minutes == 0
     }
 
-    fn execute(&mut self, meta: &mut HashMap<String, Metadata>) {
+    fn execute(&mut self) {
         //Get best action
-        let mut v_gain = meta.iter().filter(|(_, m)| m.cost <= self.minutes).map(|(k, m)| (k.to_owned(), m.gain.to_owned())).collect::<Vec<(String, i32)>>();
+        let mut v_gain = self.meta.iter().filter(|(_, m)| m.cost <= self.minutes).map(|(k, m)| (k.to_owned(), m.gain.to_owned())).collect::<Vec<(String, i32)>>();
         v_gain.sort_by_key(|(_, g)| *g);
-        let m = meta.get_mut(&v_gain.last().unwrap().0).unwrap();
+        let m = self.meta.get_mut(&v_gain.last().unwrap().0).unwrap();
         //println!("Time {}, Go {}, Cost {}, Gain {}", self.minutes, v.name, v.meta.cost, v.meta.gain);
         println!("Gains: {:?}", v_gain);
         self.minutes -= m.cost;
@@ -72,13 +73,13 @@ impl<'a> Volcano<'a> {
         self.pressure += m.gain as usize;
     }
 
-    fn calculate_gains(&mut self, meta: &mut HashMap<String, Metadata>) {
+    fn calculate_gains(&mut self) {
         //First clear metadata
-        meta.iter_mut().for_each(|(_, m)| m.clear());
+        self.meta.iter_mut().for_each(|(_, m)| m.clear());
         //BFS calculating gain
         let mut q = Vec::new();
         let v = self.valves.get(&self.current).unwrap();
-        let mut m = meta.remove(&self.current).unwrap();
+        let mut m = self.meta.remove(&self.current).unwrap();
         if !m.open {
             m.update(self.minutes, 1, v.rate);
         } else {
@@ -89,7 +90,7 @@ impl<'a> Volcano<'a> {
             let (v, m) = q.pop().unwrap();
             for ch in &v.tunnels {
                 if let Some(vt) = self.valves.get(ch) {
-                    if let Some(mut mt) = meta.remove(&vt.name) {
+                    if let Some(mut mt) = self.meta.remove(&vt.name) {
                         if !mt.visited {
                             if !mt.open {
                                 mt.update(self.minutes, m.cost+1, vt.rate);
@@ -98,21 +99,20 @@ impl<'a> Volcano<'a> {
                             }
                             q.push((vt, mt));
                         } else {
-                            meta.insert(vt.name.to_owned(), mt);
+                            self.meta.insert(vt.name.to_owned(), mt);
                         }
                     }
                 }
             }
-            meta.insert(v.name.to_owned(), m);
+            self.meta.insert(v.name.to_owned(), m);
         }
     }
 
     fn play(&mut self) {
-        let mut meta = self.valves.iter().map(|(k,_)| (k.to_owned(), Metadata::new())).collect::<HashMap<String, Metadata>>();
         while !self.is_end() {
-            self.calculate_gains(&mut meta);
+            self.calculate_gains();
             //println!("After gains: {:?}", self.valves);
-            self.execute(&mut meta);
+            self.execute();
         }
     }
 }
@@ -136,7 +136,8 @@ fn main() {
             starting = String::from(name);
         }
     }
-    let mut volcano = Volcano { minutes: 30, pressure: 0, current: starting, valves: &valves};
+    let mut volcano = Volcano { minutes: 30, pressure: 0, current: starting, valves: &valves,
+    meta: valves.iter().map(|(k,_)| (k.to_owned(), Metadata::new())).collect::<HashMap<String, Metadata>>()};
     //println!("Read: {:?}", volcano);
     volcano.play();
     println!("Pressure released: {}", volcano.pressure);
