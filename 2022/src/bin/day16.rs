@@ -60,7 +60,7 @@ impl<'a> Volcano<'a> {
         self.minutes == 0
     }
 
-    fn execute(&mut self) {
+    fn execute(&mut self) -> usize {
         //Get best action
         let mut v_gain = self.meta.iter().filter(|(_, m)| m.cost <= self.minutes).map(|(k, m)| (k.to_owned(), m.gain.to_owned())).collect::<Vec<(String, i32)>>();
         v_gain.sort_by_key(|(_, g)| *g);
@@ -71,6 +71,7 @@ impl<'a> Volcano<'a> {
         self.current = v_gain.last().unwrap().0.to_owned();
         m.open = true;
         self.pressure += m.gain as usize;
+        self.play()
     }
 
     fn calculate_gains(&mut self) {
@@ -108,12 +109,12 @@ impl<'a> Volcano<'a> {
         }
     }
 
-    fn play(&mut self) {
-        while !self.is_end() {
-            self.calculate_gains();
-            //println!("After gains: {:?}", self.valves);
-            self.execute();
+    fn play(&mut self) -> usize {
+        if self.is_end() {
+            return self.pressure;
         }
+        self.calculate_gains();
+        self.execute()
     }
 }
 
@@ -139,6 +140,6 @@ fn main() {
     let mut volcano = Volcano { minutes: 30, pressure: 0, current: starting, valves: &valves,
     meta: valves.iter().map(|(k,_)| (k.to_owned(), Metadata::new())).collect::<HashMap<String, Metadata>>()};
     //println!("Read: {:?}", volcano);
-    volcano.play();
-    println!("Pressure released: {}", volcano.pressure);
+    
+    println!("Pressure released: {}", volcano.play());
 }
