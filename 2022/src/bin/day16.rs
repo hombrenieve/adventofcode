@@ -60,15 +60,13 @@ impl<'a> Volcano<'a> {
         self.minutes == 0
     }
 
-    fn execute(&mut self) -> usize {
+    fn execute(&mut self, tunnel: &String) -> usize {
         //Get best action
-        let mut v_gain = self.meta.iter().filter(|(_, m)| m.cost <= self.minutes).map(|(k, m)| (k.to_owned(), m.gain.to_owned())).collect::<Vec<(String, i32)>>();
-        v_gain.sort_by_key(|(_, g)| *g);
-        let m = self.meta.get_mut(&v_gain.last().unwrap().0).unwrap();
+        let m = self.meta.get_mut(tunnel).unwrap();
         //println!("Time {}, Go {}, Cost {}, Gain {}", self.minutes, v.name, v.meta.cost, v.meta.gain);
-        println!("Gains: {:?}", v_gain);
+        //println!("Gains: {}", m.gain);
         self.minutes -= m.cost;
-        self.current = v_gain.last().unwrap().0.to_owned();
+        self.current = tunnel.to_owned();
         m.open = true;
         self.pressure += m.gain as usize;
         self.play()
@@ -109,12 +107,26 @@ impl<'a> Volcano<'a> {
         }
     }
 
+    fn get_meaningful_actions(&self) -> Vec<String> {
+        let mut v_gain = self.meta.iter().filter(|(_, m)| m.cost <= self.minutes).map(|(k, m)| (k.to_owned(), m.gain.to_owned())).collect::<Vec<(String, i32)>>();
+        v_gain.sort_by_key(|(_, g)| *g);
+        v_gain.iter().filter(|(_,g)| *g > 0).map(|(k, _)| k.to_owned()).collect()
+    }
+
     fn play(&mut self) -> usize {
         if self.is_end() {
             return self.pressure;
         }
         self.calculate_gains();
-        self.execute()
+        let mut results = Vec::new();
+        for t in self.get_meaningful_actions() {
+            results.push(self.clone().execute(&t));
+        }
+        if let Some(m) = results.iter().max() {
+            return *m;
+        }
+        let c = self.current.to_owned();
+        self.execute(&c)
     }
 }
 
