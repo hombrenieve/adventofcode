@@ -4,85 +4,84 @@ mod common;
 #[derive(Debug)]
 struct Element {
     num: i32,
-    prev: *mut Element,
-    next: *mut Element
+    prev: usize,
+    next: usize
 }
 
 impl Element {
-    fn new(num: i32, prev: *mut Element) -> Element {
+    fn new(num: i32, prev: usize) -> Element {
         Element {
             num: num,
             prev: prev,
-            next: std::ptr::null_mut()
+            next: 0
         }
     }
 
-    unsafe fn next_element(&self) -> &mut Element {
-        &mut *self.next
-    } 
-
-    unsafe fn prev_element(&self) -> &mut Element {
-        &mut *self.prev
-    }
-
-    unsafe fn adv(&mut self, n: i32) -> *mut Element {
+    fn adv(&self, n: i32, ind: usize, holder: &Vec<Element>) -> usize {
         let mut el = self;
+        let mut ind = ind;
         if n >= 0 {
             for _ in 0..n {
-                el = el.next_element();
+                ind = el.next;
+                el = &holder[ind];
             }
         } else {
             for _ in 0..=n.abs() {
-                el = el.prev_element();
+                ind = el.prev;
+                el = &holder[ind];
             }
         }
-        el
+        ind
     }
 }
 
-unsafe fn vec_to_list(vec: &Vec<i32>) -> Vec<Element> {
+fn vec_to_list(vec: &Vec<i32>) -> Vec<Element> {
     let mut res = Vec::with_capacity(vec.len());
     let mut iter = vec.iter();
-    res.push(Element::new(*iter.next().unwrap(), std::ptr::null_mut()));
+    let mut i = 0;
+    res.push(Element::new(*iter.next().unwrap(), 0));
     while let Some(num) = iter.next() {
-        let el = Element::new(*num, res.last_mut().unwrap());
-        res.push(el);   
-        res.last_mut().unwrap().prev_element().next = res.last_mut().unwrap();    
+        let el = Element::new(*num, i);
+        res.push(el);
+        res[i].next = i+1;
+        i = i+1;
     }
     //Adjust circular list
-    res.last_mut().unwrap().next = res.first_mut().unwrap();
-    res.first_mut().unwrap().prev = res.last_mut().unwrap();
+    res.last_mut().unwrap().next = 0;
+    res.first_mut().unwrap().prev = res.len()-1;
     res
 }
 
-unsafe fn list_to_vec(list: &Element, len: usize) -> Vec<i32> {
-    let mut res = Vec::with_capacity(len);
-    let mut el = list;
-    for _ in 0..len {
+fn list_to_vec(list: &Vec<Element>) -> Vec<i32> {
+    let mut res = Vec::with_capacity(list.len());
+    let mut el = &list[0];
+    for _ in 0..list.len() {
         res.push(el.num);
-        el = el.next_element();
+        el = &list[el.next];
     }
     res
 }
 
-unsafe fn mix_file(encrypted: &Vec<i32>) -> Vec<i32> {
+fn mix_file(encrypted: &Vec<i32>) -> Vec<i32> {
     let mut elements = vec_to_list(encrypted);
-    for el in &mut elements {
+    for indEl in 0..elements.len() {
         //Remove from previous location
-        el.prev_element().next = el.next_element();
-        el.next_element().prev = el.prev_element();
-        
-        let prev = el.prev_element();
-        let mut prev_dest = prev.adv(el.num);
-        let mut next_dest = (*prev_dest).next_element();
+        let cur_prev = elements[indEl].prev;
+        let cur_next = elements[indEl].next;
+        elements[cur_prev].next = elements[indEl].next;
+        elements[cur_next].prev = elements[indEl].prev;
+                
+        let prev = &elements[cur_prev];
+        let prev_dest = prev.adv(elements[indEl].num, cur_prev, &elements);
+        let next_dest = elements[prev_dest].next;
 
         //insert in destination
-        (*prev_dest).next = el;
-        el.next = next_dest;
-        next_dest.prev = el;
-        el.prev = prev_dest;
+        elements[prev_dest].next = indEl;
+        elements[indEl].next = next_dest;
+        elements[next_dest].prev = indEl;
+        elements[indEl].prev = prev_dest;
     }
-    list_to_vec(&elements[0], encrypted.len())
+    list_to_vec(&elements)
 }
 
 fn get_coordinates(msg: &Vec<i32>) -> i32 {
@@ -97,8 +96,6 @@ fn get_coordinates(msg: &Vec<i32>) -> i32 {
 fn main() {
     let encrypted = common::read_until_eof().split(' ').map(|s| s.parse::<i32>().unwrap()).collect::<Vec<i32>>();
     let msg: Vec<i32>;
-    unsafe {
-        msg = mix_file(&encrypted);
-    }
+    msg = mix_file(&encrypted);
     println!("Result {}", get_coordinates(&msg));
 }
