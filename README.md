@@ -9,3 +9,5 @@ languages and, on the go, try to have some fun with other geek friends.
   - Mostly Golang (I tried also rust but it didn't fly much)
 - 2021 edition
   - I'm tring it in Swift, let's give Apple languages a try
+- 2022 edition
+  - Let's do it in Rust (I really was expecting this...)
