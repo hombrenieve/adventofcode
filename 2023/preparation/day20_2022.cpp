@@ -20,12 +20,8 @@ struct node {
     }
 
     void remove() {
-        auto prev = this->prev;
-        auto next = this->next;
-        prev->next = next;
-        next->prev = prev;
-        this->next = nullptr;
-        this->prev = nullptr;
+        prev->next = this->next;
+        next->prev = this->prev;
     }
 
     void insert_next(std::shared_ptr<node> cur) {
@@ -72,14 +68,13 @@ void print(std::shared_ptr<node> cur) {
 void mix(std::vector<std::shared_ptr<node>>& nodes) {
     for(int i = 0; i < nodes.size(); i++) {
         auto cur = nodes[i];
+        if(cur->data == 0) continue;
+        cur->remove();
         auto pos = cur->advance(cur->data);
-        if(pos != cur) {
-            cur->remove();
-            if(cur->data < 0) {
-                pos->insert_prev(cur);
-            } else {
-                pos->insert_next(cur);
-            }
+        if(cur->data < 0) {
+            pos->insert_prev(cur);
+        } else {
+            pos->insert_next(cur);
         }
     }
 }
@@ -87,19 +82,15 @@ void mix(std::vector<std::shared_ptr<node>>& nodes) {
 int calculate_result(std::shared_ptr<node> node) {
     auto cur = node;
     while(cur->data != 0) { cur = cur->next; }
-    int data1000 = cur->advance(1000)->data;
-    int data2000 = cur->advance(2000)->data;
-    int data3000 = cur->advance(3000)->data;
-    std::cout << data1000 << " " << data2000 << " " << data3000 << std::endl;
-    return data1000+data2000+data3000;
+    return cur->advance(1000)->data+
+        cur->advance(2000)->data+
+        cur->advance(3000)->data;
 }
 
 int main() {
     std::vector<std::shared_ptr<node>> nodes;
     load_vector(nodes);
-    print(nodes[0]);
     mix(nodes);
-    print(nodes[0]);
     std::cout << "Result is " << calculate_result(nodes[0]) << std::endl; 
     std::cout << "List size: " << nodes.size() << std::endl;
     return 0;
