@@ -9,6 +9,12 @@ struct node {
 
     node(const int d) : data(d) { }
 
+    template<typename num>
+    static const int get_adv(num n, size_t max) {
+        int adv = std::abs(n) % max;
+        return (n < 0)? -adv : adv;
+    }
+
     std::shared_ptr<node> advance(int n) {
         if(n == 0) {
             return this->prev->next;
@@ -70,7 +76,7 @@ void mix(std::vector<std::shared_ptr<node>>& nodes) {
         auto cur = nodes[i];
         if(cur->data == 0) continue;
         cur->remove();
-        auto pos = cur->advance(cur->data);
+        auto pos = cur->advance(node::get_adv(cur->data, nodes.size()-1));
         if(cur->data < 0) {
             pos->insert_prev(cur);
         } else {
@@ -79,19 +85,19 @@ void mix(std::vector<std::shared_ptr<node>>& nodes) {
     }
 }
 
-int calculate_result(std::shared_ptr<node> node) {
+int calculate_result(std::shared_ptr<node> node, size_t max) {
     auto cur = node;
     while(cur->data != 0) { cur = cur->next; }
-    return cur->advance(1000)->data+
-        cur->advance(2000)->data+
-        cur->advance(3000)->data;
+    return cur->advance(node::get_adv(1000, max))->data+
+        cur->advance(node::get_adv(2000, max))->data+
+        cur->advance(node::get_adv(3000, max))->data;
 }
 
 int main() {
     std::vector<std::shared_ptr<node>> nodes;
     load_vector(nodes);
     mix(nodes);
-    std::cout << "Result is " << calculate_result(nodes[0]) << std::endl; 
+    std::cout << "Result is " << calculate_result(nodes[0], nodes.size()) << std::endl; 
     std::cout << "List size: " << nodes.size() << std::endl;
     return 0;
 }
