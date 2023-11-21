@@ -2,6 +2,8 @@
 #include <vector>
 #include <memory>
 
+static const long long decryption_key = 811589153;
+
 struct node {
     const int data;
     std::shared_ptr<node> prev;
@@ -62,10 +64,10 @@ void load_vector(std::vector<std::shared_ptr<node>>& nodes) {
 }
 
 void print(std::shared_ptr<node> cur) {
-    std::cout << cur->data << ", ";
+    std::cout << cur->data*decryption_key << ", ";
     auto next = cur->next;
     while(next != cur) {
-        std::cout << next->data << ", ";
+        std::cout << next->data*decryption_key << ", ";
         next = next->next;
     }
     std::cout << std::endl;
@@ -76,7 +78,7 @@ void mix(std::vector<std::shared_ptr<node>>& nodes) {
         auto cur = nodes[i];
         if(cur->data == 0) continue;
         cur->remove();
-        auto pos = cur->advance(node::get_adv(cur->data, nodes.size()-1));
+        auto pos = cur->advance(node::get_adv(cur->data*decryption_key, nodes.size()-1));
         if(cur->data < 0) {
             pos->insert_prev(cur);
         } else {
@@ -88,15 +90,23 @@ void mix(std::vector<std::shared_ptr<node>>& nodes) {
 int calculate_result(std::shared_ptr<node> node, size_t max) {
     auto cur = node;
     while(cur->data != 0) { cur = cur->next; }
-    return cur->advance(node::get_adv(1000, max))->data+
-        cur->advance(node::get_adv(2000, max))->data+
-        cur->advance(node::get_adv(3000, max))->data;
+    std::cout << cur->advance(node::get_adv(1000, max))->data*decryption_key << ", " <<
+        cur->advance(node::get_adv(2000, max))->data*decryption_key << ", " <<
+        cur->advance(node::get_adv(3000, max))->data*decryption_key << std::endl;
+        //It overflowed... finally I used an online calculator with the partial result (looser!)
+    return cur->advance(node::get_adv(1000, max))->data*decryption_key+
+        cur->advance(node::get_adv(2000, max))->data*decryption_key+
+        cur->advance(node::get_adv(3000, max))->data*decryption_key;
 }
 
 int main() {
     std::vector<std::shared_ptr<node>> nodes;
     load_vector(nodes);
-    mix(nodes);
+    print(nodes[0]);
+    for(int i = 0; i < 10; ++i) {
+        mix(nodes);
+    print(nodes[0]);
+    }
     std::cout << "Result is " << calculate_result(nodes[0], nodes.size()) << std::endl; 
     std::cout << "List size: " << nodes.size() << std::endl;
     return 0;
