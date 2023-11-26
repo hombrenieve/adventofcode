@@ -2,6 +2,7 @@
 #include <map>
 #include <memory>
 #include <optional>
+#include <cmath>
 
 #include <sstream>
 #include <vector>
@@ -33,7 +34,7 @@ const symbol symbol_from_str(std::string &str) {
   exit(1);
 }
 
-const long operate(long a, long b, symbol s) {
+const double operate(double a, double b, symbol s) {
   switch (s) {
   case symbol::plus:
     return a + b;
@@ -58,19 +59,19 @@ struct operation {
   operation(std::vector<std::string> op)
       : a(op[1]), b(op[3]), s(symbol_from_str(op[2])) {}
 
-  long execute(std::map<std::string, monkey> &monkeys);
+  double execute(std::map<std::string, monkey> &monkeys);
 };
 
 struct monkey {
   std::string name;
-  std::optional<long> number;
+  std::optional<double> number;
   std::optional<operation> op;
 
   monkey() {}
   monkey(std::string &name_, operation &op_) : name(name_), op(op_) {}
-  monkey(std::string &name_, long n) : name(name_), number(n) {}
+  monkey(std::string &name_, double n) : name(name_), number(n) {}
 
-  long execute(std::map<std::string, monkey> &monkeys) {
+  double execute(std::map<std::string, monkey> &monkeys) {
     if (number) {
       return number.value();
     }
@@ -83,9 +84,9 @@ struct monkey {
   }
 };
 
-long operation::execute(std::map<std::string, monkey> &monkeys) {
-  long resA = monkeys[a].execute(monkeys);
-  long resB = monkeys[b].execute(monkeys);
+double operation::execute(std::map<std::string, monkey> &monkeys) {
+  double resA = monkeys[a].execute(monkeys);
+  double resB = monkeys[b].execute(monkeys);
   return operate(resA, resB, s);
 }
 
@@ -97,7 +98,7 @@ void load_monkeys(std::map<std::string, monkey> &monkeys) {
       operation op(splitted);
       monkeys.emplace(name, monkey{name, op});
     } else {
-      monkeys.emplace(name, monkey{name, std::stoi(splitted[1])});
+      monkeys.emplace(name, monkey{name, std::stof(splitted[1])});
     }
   };
   do_each_input(each_input);
@@ -113,7 +114,7 @@ void print(std::map<std::string, monkey> &monkeys) {
 int main() {
   std::map<std::string, monkey> monkeys;
   load_monkeys(monkeys);
-  long res = monkeys["root"].execute(monkeys);
-  std::cout << "Root yells: " << res << std::endl;
+  double res = monkeys["root"].execute(monkeys);
+  std::cout << "Root yells: " << long(round(res)) << std::endl;
   return 0;
 }
