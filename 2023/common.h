@@ -3,10 +3,10 @@
 #include <string>
 #include <vector>
 
-constexpr int BUFFER_SIZE = 128;
+constexpr int BUFFER_SIZE = 2048;
 
 // for string delimiter
-std::vector<std::string> split(std::string s, std::string delimiter) {
+std::vector<std::string> split(const std::string& s, std::string delimiter) {
   size_t pos_start = 0, pos_end, delim_len = delimiter.length();
   std::string token;
   std::vector<std::string> res;
