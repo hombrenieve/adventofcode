@@ -19,7 +19,15 @@ struct bag {
         return red > other.red || green > other.green || blue > other.blue;
     }
 
-} the_bag(12, 13, 14);
+    bag max(const bag& other) const {
+        return bag(std::max(red, other.red), std::max(green, other.green), std::max(blue, other.blue));
+    }
+
+    long power() const {
+        return red * green * blue;
+    }
+
+};
 
 struct game {
     std::vector<bag> bags;
@@ -57,17 +65,11 @@ int main() {
     auto games = load_games();
     long counter = 0;
     for(int i = 0; i < games.size(); i++) {
-        bool is_valid = true;
+        bag min_bag(0, 0, 0);
         for(const auto& bag : games[i].bags) {
-            if(bag > the_bag) {
-                is_valid = false;
-                break;
-            }
+            min_bag = min_bag.max(bag);
         }
-        if(is_valid) {
-            counter += i+1;
-        }
-
+        counter += min_bag.power();
     }
     std::cout << "Total: " << counter << std::endl;
     return 0;
