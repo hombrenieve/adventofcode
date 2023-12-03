@@ -2,6 +2,8 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <algorithm>
+#include <numeric>
 
 constexpr int BUFFER_SIZE = 2048;
 
@@ -24,6 +26,6 @@ std::vector<std::string> split(const std::string& s, std::string delimiter) {
 void do_each_input(std::function<void(const std::string &)> func) {
   char buffer[BUFFER_SIZE];
   while (std::cin.getline(buffer, BUFFER_SIZE - 1)) {
-    func(std::string(buffer));
+    func(std::string(buffer).substr(0, std::cin.gcount() - 1));
   }
 }
