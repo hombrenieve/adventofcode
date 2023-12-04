@@ -22,6 +22,29 @@ std::vector<std::string> split(const std::string& s, std::string delimiter) {
   res.push_back(s.substr(pos_start));
   return res;
 }
+std::vector<std::string> split_with_rep(const std::string& s, const char delimiter) {
+  size_t pos_start = 0, pos_end = 0;
+  std::vector<std::string> res;
+
+  do {
+    pos_start = pos_end;
+    while (pos_start < s.length() && s[pos_start] == delimiter) {
+      pos_start++;
+    }
+    pos_end = pos_start;
+
+    while(pos_end < s.length() && s[pos_end] != delimiter) {
+      pos_end++;
+    }
+
+    if(pos_start != pos_end) {
+      res.push_back(s.substr(pos_start, pos_end - pos_start));
+    }
+  } while (pos_start != s.length() && pos_end != s.length());
+  
+  return res;
+}
+
 
 void do_each_input(std::function<void(const std::string &)> func) {
   char buffer[BUFFER_SIZE];
