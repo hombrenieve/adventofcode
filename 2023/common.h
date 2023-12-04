@@ -4,6 +4,7 @@
 #include <vector>
 #include <algorithm>
 #include <numeric>
+#include <map>
 
 constexpr int BUFFER_SIZE = 2048;
 

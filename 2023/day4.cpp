@@ -8,15 +8,13 @@ struct game {
         int score = 0;
         for (const auto n: numbers) {
             if (std::find(winning_numbers.cbegin(), winning_numbers.cend(), n) != winning_numbers.cend()) {
-                if(score > 0) {
-                    score *= 2;
-                } else {
-                    score = 1;
-                }
+                score++;
             }
         }
         return score;
     }
+
+
 
 };
 
@@ -42,10 +40,13 @@ std::vector<game> load_games() {
 
 int main() {
     auto games = load_games();
-    int final_score = 0;
-    std::for_each(games.cbegin(), games.cend(), [&](const game& g) {
-        final_score += g.get_score();
-    });
-    std::cout << final_score << std::endl;
+    std::vector<int> scores(games.size(), 1);
+    for(int i = 0; i < games.size(); i++) {
+        const auto gs = games[i].get_score();
+        for(int j = i + 1; j <= i + gs; j++) {
+            scores[j] += scores[i];
+        }
+    }
+    std::cout << std::accumulate(scores.begin(), scores.end(), 0) << std::endl;
     return 0;
 }
