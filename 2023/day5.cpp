@@ -1,24 +1,118 @@
 #include "common.h"
+#include <climits>
 
-struct range {
-    long source_min;
-    long dest_min;
-    long steps;
+
+struct interval {
+    long min;
+    long max;
+
+    interval(long min, long steps) : min(min), max(min+steps) {}
+
+    long size() const {
+        return max - min;
+    }
+
+    bool contains(long value) const {
+        return value >= min && value < max;
+    }
+
+    std::vector<interval> intersection(const interval& other) const {
+        if(other.min > max || other.max < min) {
+            return {};
+        }
+        if(other.min >= min && other.max <= max) {
+            return {other};
+        }
+        if(other.min < min && other.max > max) {
+            return {*this};
+        }
+        if(other.min <= min) {
+            return {interval(min, other.max - min)};
+        }
+        return {interval(other.min, max - other.min)};
+    }
+
+    std::vector<interval> difference(const interval& other) const {
+        if(other.min > max || other.max < min) {
+            return {*this};
+        }
+        if(other.min > min && other.max < max) {
+            return {interval(min, other.min - min), interval(other.max, max - other.max)};
+        }
+        if(other.min <= min && other.max >= max) {
+            return {};
+        }
+        if(other.min < min) {
+            return {interval(other.max, max - other.max)};
+        }
+        return {interval(min, other.min - min)};
+    }
+};
+
+std::ostream& operator<<(std::ostream& os, const std::vector<interval>& intervals) {
+    os << "{";
+    for(const auto& i: intervals) {
+        os << "[" << i.min << ", " << i.max << "], ";
+    }
+    os << "}";
+    return os;
+}
+
+struct range_map {
+    interval source;
+    interval dest;
+
+    range_map(long source_min, long dest_min, long steps) : source(source_min, steps), dest(dest_min, steps) {}
+
+    std::pair<std::vector<interval>, std::vector<interval>> map(const interval& source) const {
+        auto intersections = source.intersection(this->source);
+        auto differences = source.difference(this->source);
+        std::transform(std::begin(intersections), std::end(intersections), intersections.begin(), [&](const interval& i) {
+            return interval(dest.min + (i.min - this->source.min), i.size());
+        });
+        //returns transformed and left sources
+        return {intersections, differences};
+    }
 };
 
 struct mapping {
     std::string name;
-    std::vector<range> ranges;
+    std::vector<range_map> ranges;
 
     long map(long source) const {
         for(const auto& r: ranges) {
-            if(source >= r.source_min && source < r.source_min + r.steps) {
-                return r.dest_min + (source - r.source_min);
+            if(r.source.contains(source)) {
+                return r.dest.min + (source - r.source.min);
             }
         }
         return source;
     }
+
+    std::vector<interval> map(const interval& source) const {
+        std::vector<interval> result;
+        std::vector<interval> next_sources{source};
+        std::vector<interval> sources{source};
+        for(const auto& r: ranges) {
+            for(const auto& s: sources) {
+                auto [intersections, differences] = r.map(s);
+                result.insert(std::end(result), std::begin(intersections), std::end(intersections));
+                std::for_each(intersections.begin(), intersections.end(), [&](const interval& i) {
+                    result.push_back(i);
+                });
+                std::for_each(differences.begin(), differences.end(), [&](const interval& i) {
+                    next_sources.push_back(i);
+                });
+            }
+            sources = next_sources;
+        }
+        std::for_each(sources.begin(), sources.end(), [&](const interval& i) {
+            result.push_back(i);
+        });
+        return result;
+    }
 };
+
+
 
 
 struct seed {
@@ -48,14 +142,14 @@ struct seed {
 
 
 
-std::vector<seed> load_seeds() {
-    std::vector<seed> seeds;
+std::vector<interval> load_seeds() {
+    std::vector<interval> seeds;
     do_each_input_until_empty([&](const std::string& line) {
         auto tokens = split(line, ":");
         auto numbers = split_with_rep(tokens[1], ' ');
-        std::for_each(numbers.cbegin(), numbers.cend(), [&](const std::string& s) {
-            seeds.emplace_back(std::stol(s));
-        });
+        for(int i = 0; i < numbers.size(); i+=2) {
+            seeds.emplace_back(std::stol(numbers[i]), std::stol(numbers[i + 1]));
+        }
     });
     return seeds;
 }
@@ -80,15 +174,26 @@ std::vector<mapping> load_mappings() {
     return mappings;
 }
 
+long find_min(interval& data, const std::vector<mapping>& mappings) {
+    std::vector<interval> result{data};
+    for(const auto& m: mappings) {
+        for(const auto& i: result) {
+            result = m.map(i);
+        }
+        std::cout << "Mapping " << m.name << " -> " << result << std::endl;
+    }
+    return std::min_element(result.begin(), result.end(), [](const interval& a, const interval& b) {
+        return a.min < b.min;
+    })->min;
+}
+
 int main() {
     auto seeds = load_seeds();
     auto mappings = load_mappings();
-    std::for_each(seeds.begin(), seeds.end(), [&](seed& s) {
-        s.fill_up(mappings);
-    });
-    auto min = std::min_element(seeds.begin(), seeds.end(), [](const seed& s1, const seed& s2) {
-        return s1.location < s2.location;
-    });
-    std::cout << min->location << std::endl;
+    std::vector<long> mins;
+    for(auto& s: seeds) {
+        mins.push_back(find_min(s, mappings));
+    }
+    std::cout << "Min: " << *std::min_element(mins.begin(), mins.end()) << std::endl;
     return 0;
 }
