@@ -5,16 +5,16 @@ constexpr int get_card(char id) {
     int value = -1;
     switch(id) {
         case 'A':
-            value = 14;
-            break;
-        case 'K':
             value = 13;
             break;
-        case 'Q':
+        case 'K':
             value = 12;
             break;
-        case 'J':
+        case 'Q':
             value = 11;
+            break;
+        case 'J':
+            value = 1;
             break;
         case 'T':
             value = 10;
@@ -36,7 +36,7 @@ enum class kind {
 };
 
 struct hand {
-    int cards[15];
+    int cards[14];
     int orig[5];
     int bid;
 
@@ -53,7 +53,8 @@ struct hand {
         int three = 0;
         int four = 0;
         int five = 0;
-        for (int i = 2; i <= 14; i++) {
+        int jokers = cards[1];
+        for (int i = 2; i <= 13; i++) {
             if (cards[i] == 2) {
                 pairs++;
             } else if (cards[i] == 3) {
@@ -67,17 +68,52 @@ struct hand {
         if (five == 1) {
             return kind::five_of_a_kind;
         } else if (four == 1) {
-            return kind::four_of_a_kind;
+            if(jokers == 1)
+                return kind::five_of_a_kind;
+            else
+                return kind::four_of_a_kind;
         } else if (three == 1 && pairs == 1) {
             return kind::full_house;
         } else if (three == 1) {
-            return kind::three_of_a_kind;
+            switch(jokers) {
+                case 1:
+                    return kind::four_of_a_kind;
+                case 2:
+                    return kind::five_of_a_kind;
+                default:
+                    return kind::three_of_a_kind;
+            }
         } else if (pairs == 2) {
-            return kind::two_pairs;
+            if (jokers == 1)
+                return kind::full_house;
+            else
+                return kind::two_pairs;
         } else if (pairs == 1) {
-            return kind::one_pair;
+            switch(jokers) {
+                case 1:
+                    return kind::three_of_a_kind;
+                case 2:
+                    return kind::four_of_a_kind;
+                case 3:
+                    return kind::five_of_a_kind;
+                default:
+                    return kind::one_pair;
+            }
         } else {
-            return kind::high_card;
+            switch(jokers) {
+                case 1:
+                    return kind::one_pair;
+                case 2:
+                    return kind::three_of_a_kind;
+                case 3:
+                    return kind::four_of_a_kind;
+                case 4:
+                    return kind::five_of_a_kind;
+                case 5:
+                    return kind::five_of_a_kind;
+                default:
+                    return kind::high_card;
+            }
         }
     }
 
