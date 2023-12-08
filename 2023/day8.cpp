@@ -20,20 +20,42 @@ std::map<std::string, node> load_nodes() {
     return nodes;
 }
 
-
-int navigate(std::map<std::string, node> &nodes, const std::string& instructions) {
-    node n = nodes["AAA"];
-    int steps = 0;
-    while(n.name != "ZZZ") {
-        auto step = steps % instructions.size();
-        if(instructions[step] == 'L') {
-            n = nodes[n.left];
-        } else {
-            n = nodes[n.right];
+std::vector<std::string> find_matching_nodes(std::map<std::string, node> &nodes, std::function<bool(node)> func) {
+    std::vector<std::string> matching;
+    for(auto &p : nodes) {
+        if(func(p.second)) {
+            matching.push_back(p.first);
         }
-        steps++;
     }
-    return steps;
+    return matching;
+}
+
+long navigate(std::map<std::string, node> &nodes, const std::string& instructions) {
+    auto simnodes = find_matching_nodes(nodes, [](node n) { return n.name[2] == 'A'; });
+    std::vector<int> paths;
+    int steps = 0;
+    for(int i = 0; i < simnodes.size(); i++) {
+        auto n = nodes[simnodes[i]];
+        steps = 0;
+        while(n.name[2] != 'Z') {
+            auto step = steps % instructions.size();
+            if(instructions[step] == 'L') {
+                n = nodes[n.left];
+            } else {
+                n = nodes[n.right];
+            }
+            steps++;
+        }
+        std::cout << i << " " << steps << std::endl;
+        paths.push_back(steps);
+    }
+    std::cout << "Total: " << instructions.size() << std::endl;
+    //The result is the lcm of all paths
+    long lcm = paths[0];
+    for(int i = 1; i < paths.size(); i++) {
+        lcm = std::lcm(lcm, paths[i]);
+    }
+    return lcm;
 }
 
 
