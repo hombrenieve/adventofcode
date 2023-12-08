@@ -63,3 +63,12 @@ void do_each_input(std::function<void(const std::string &)> func) {
     func(std::string(buffer).substr(0, std::cin.gcount() - 1));
   }
 }
+
+std::string get_line() {
+  char buffer[BUFFER_SIZE];
+  if(std::cin.getline(buffer, BUFFER_SIZE - 1)) {
+    return std::string(buffer).substr(0, std::cin.gcount() - 1);
+  } else {
+    throw std::runtime_error("no more lines");
+  }
+}
