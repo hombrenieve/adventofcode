@@ -27,7 +27,7 @@ int extrapolate(const std::vector<int> &sequence) {
     }
     int next_level = extrapolate(differences);
     //calculate last number
-    return sequence[sequence.size() - 1] + next_level;
+    return sequence[0] - next_level;
 }
 
 int main() {
