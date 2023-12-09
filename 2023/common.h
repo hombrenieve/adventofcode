@@ -72,3 +72,13 @@ std::string get_line() {
     throw std::runtime_error("no more lines");
   }
 }
+
+template <typename T>
+bool meet_condition_all(const std::vector<T> &vec, std::function<bool(const T &)> func) {
+  for (const auto &v : vec) {
+    if (!func(v)) {
+      return false;
+    }
+  }
+  return true;
+}
