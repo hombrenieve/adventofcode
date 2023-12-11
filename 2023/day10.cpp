@@ -7,6 +7,10 @@ struct point {
     int y;
 
     point(int y, int x) : x(x), y(y) {}
+
+    bool operator==(const point& other) const {
+        return x == other.x && y == other.y;
+    }
 };
 
 enum class position {
@@ -136,7 +140,7 @@ std::vector<pipe*> expand(std::vector<std::vector<pipe>>& pipes, point p) {
 }
 
 
-int find_farthest(std::vector<std::vector<pipe>>& pipes, point start) {
+int find_farthest(std::vector<std::vector<pipe>>& pipes, const point& start) {
     std::queue<pipe*> q;
     pipes[start.y][start.x].distance = 0;
     q.push(&pipes[start.y][start.x]);
@@ -159,8 +163,69 @@ int find_farthest(std::vector<std::vector<pipe>>& pipes, point start) {
     return max_distance;
 }
 
+std::vector<point> in_the_loop(std::vector<std::vector<pipe>>& pipes, const point& start) {
+    find_farthest(pipes, start);
+    std::vector<point> in_the_loop;
+    std::for_each(pipes.begin(), pipes.end(), [&](std::vector<pipe>& row) {
+        std::for_each(row.begin(), row.end(), [&](pipe& p) {
+            if(p.distance > 0) {
+                in_the_loop.push_back(p.pos);
+            }
+        });
+    });
+    return in_the_loop;
+}
+
+constexpr bool is_in_loop(const std::vector<point>& the_loop, const point& p) {
+    return std::find(the_loop.begin(), the_loop.end(), p) != the_loop.end();
+}
+
+int area_enclosed(int width, int height, const std::vector<point>& in_the_loop) {
+    enum class status {
+        BORDER_IN,
+        BORDER_OUT,
+        INSIDE,
+        OUTSIDE
+    };
+    int area = 0;
+    status s = status::OUTSIDE;
+    for(int y = 0; y < height; y++) {
+        for(int x = 0; x < width; x++) {
+            point p(y, x);
+            bool inloop = is_in_loop(in_the_loop, p);
+            switch(s) {
+                case status::OUTSIDE:
+                    if(inloop) {
+                        s = status::BORDER_OUT;
+                    }
+                    break;
+                case status::BORDER_IN:
+                    if(!inloop) {
+                        s = status::OUTSIDE;
+                    }
+                    break;
+                case status::BORDER_OUT:
+                    if(!inloop) {
+                        s = status::INSIDE;
+                    }
+                    break;
+                case status::INSIDE:
+                    if(inloop) {
+                        s = status::BORDER_IN;
+                    }
+                    break;
+            }
+            if(s == status::INSIDE) {
+                area++;
+            }
+        }
+    }
+    return area;
+}
+
 int main(int argc, char** argv) {
     auto [pipes, start] = load_map();
-    std::cout << find_farthest(pipes, start) << std::endl;
+    auto points_in_the_loop = in_the_loop(pipes, start);
+    std::cout << area_enclosed(pipes[0].size(), pipes.size(), points_in_the_loop) << std::endl;
     return 0;
 }
