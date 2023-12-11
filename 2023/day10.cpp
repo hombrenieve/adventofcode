@@ -177,6 +177,11 @@ int find_farthest(std::vector<std::vector<pipe>>& pipes, const point& start) {
     return max_distance;
 }
 
+pipe* squeeze(std::vector<std::vector<pipe>>& pipes, const point& p, position pos) {
+    pipe* pn = nullptr;
+    return pn;
+}
+
 pipe* get_adyacent(std::vector<std::vector<pipe>>& pipes, const point& p, position pos) {
     point pn(p.y, p.x);
     switch(pos) {
@@ -185,6 +190,8 @@ pipe* get_adyacent(std::vector<std::vector<pipe>>& pipes, const point& p, positi
             if(pn.y >= 0) {
                 if(!pipes[pn.y][pn.x].in_the_loop()) {
                     return &pipes[pn.y][pn.x];
+                } else  {
+                    return squeeze(pipes, pn, pos);
                 }
             }
             break;
@@ -193,6 +200,8 @@ pipe* get_adyacent(std::vector<std::vector<pipe>>& pipes, const point& p, positi
             if(pn.x < pipes[p.y].size()) {
                 if(!pipes[pn.y][pn.x].in_the_loop()) {
                     return &pipes[pn.y][pn.x];
+                } else {
+                    return squeeze(pipes, pn, pos);
                 }
             }
             break;
@@ -201,6 +210,8 @@ pipe* get_adyacent(std::vector<std::vector<pipe>>& pipes, const point& p, positi
             if(pn.y < pipes.size()) {
                 if (!pipes[pn.y][pn.x].in_the_loop()) {
                     return &pipes[pn.y][pn.x];
+                } else {
+                    return squeeze(pipes, pn, pos);
                 }
             }
             break;
@@ -209,6 +220,8 @@ pipe* get_adyacent(std::vector<std::vector<pipe>>& pipes, const point& p, positi
             if(p.x >= 0) {
                 if(!pipes[pn.y][pn.x].in_the_loop()) {
                     return &pipes[pn.y][pn.x];
+                } else {
+                    return squeeze(pipes, pn, pos);
                 }
             }
             break;
