@@ -111,7 +111,6 @@ std::pair<std::vector<std::vector<pipe>>, point> load_map() {
         std::vector<pipe> row;
         int cols = 0;
         for (char c : line) {
-            
             if(c == 'S') {
                 start = point(rows, cols);
             }
@@ -139,16 +138,13 @@ std::vector<pipe*> expand(std::vector<std::vector<pipe>>& pipes, point p) {
 
 int find_farthest(std::vector<std::vector<pipe>>& pipes, point start) {
     std::queue<pipe*> q;
-    pipes[start.x][start.y].distance = 0;
-    q.push(&pipes[start.x][start.y]);
+    pipes[start.y][start.x].distance = 0;
+    q.push(&pipes[start.y][start.x]);
     int max_distance = -1;
     while(!q.empty()) {
         pipe* p = q.front();
         if(p->distance > max_distance) {
             max_distance = p->distance;
-        } else {
-            q.pop();
-            continue;
         }
         q.pop();
         //Expand
@@ -156,7 +152,6 @@ int find_farthest(std::vector<std::vector<pipe>>& pipes, point start) {
         for(pipe* pn : expanded) {
             if(pn->distance == 0) {
                 pn->distance = p->distance + 1;
-                std::cout << "Pushing " << pn->shape << " Distance: " << pn->distance << std::endl;
                 q.push(pn);
             }
         }
