@@ -1,13 +1,13 @@
 #include "common.h"
 
 struct point {
-    int x, y;
-    point(int x, int y) : x(x), y(y) {}
+    long long x, y;
+    point(long long x, long long y) : x(x), y(y) {}
     point() : x(0), y(0) {}
     bool operator==(const point& p) const {
         return x == p.x && y == p.y;
     }
-    int manhattan_distance(const point& p) const {
+    long long manhattan_distance(const point& p) const {
         return std::abs(x - p.x) + std::abs(y - p.y);
     }
 };
@@ -62,7 +62,7 @@ void expand_y(std::vector<point>& galaxies) {
             if (!found) {
                 for(int k = 0; k < galaxies.size(); k++) {
                     if(galaxies[k].y > y) {
-                        new_galaxies[k].y++;
+                        new_galaxies[k].y += 999999;
                     }
                 }
             }
@@ -91,7 +91,7 @@ void expand_x(std::vector<point>& galaxies) {
             if (!found) {
                 for(int k = 0; k < galaxies.size(); k++) {
                     if(galaxies[k].x > x) {
-                        new_galaxies[k].x++;
+                        new_galaxies[k].x += 999999;
                     }
                 }
             }
@@ -100,8 +100,8 @@ void expand_x(std::vector<point>& galaxies) {
     galaxies = new_galaxies;
 }
 
-std::vector<int> distances(const std::vector<point>& galaxies) {
-    std::vector<int> distances;
+std::vector<long long> distances(const std::vector<point>& galaxies) {
+    std::vector<long long> distances;
     for(int i = 0; i < galaxies.size(); i++) {
         for(int j = i+1; j < galaxies.size(); j++) {
             distances.push_back(galaxies[i].manhattan_distance(galaxies[j]));
@@ -112,10 +112,11 @@ std::vector<int> distances(const std::vector<point>& galaxies) {
 
 int main() {
     auto galaxies = load_galaxies();
+    std::cout << galaxies << std::endl;
     expand_x(galaxies);
     expand_y(galaxies);
     std::cout << galaxies << std::endl;
     auto distance_pairs = distances(galaxies);
-    std::cout << std::accumulate(distance_pairs.begin(), distance_pairs.end(), 0) << std::endl;
+    std::cout << std::accumulate(distance_pairs.begin(), distance_pairs.end(), 0LL) << std::endl;
     return 0;
 }
