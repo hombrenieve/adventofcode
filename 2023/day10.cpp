@@ -25,8 +25,21 @@ struct pipe {
     char shape;
     point pos;
     int distance;
+    bool visited;
 
-    pipe(char shape, point pos) : shape(shape), pos(pos), distance(0) {}
+    pipe(char shape, point pos) : shape(shape), pos(pos), distance(0), visited(false) {}
+
+    bool in_the_loop() {
+        return distance > 0;
+    }
+
+    bool is_visited() const {
+        return visited;
+    }
+
+    void visit() {
+        visited = true;
+    }
 
     position get_position_in_relation_to(const pipe& other) {
         if (pos.y == other.pos.y) {
@@ -156,6 +169,7 @@ int find_farthest(std::vector<std::vector<pipe>>& pipes, const point& start) {
         for(pipe* pn : expanded) {
             if(pn->distance == 0) {
                 pn->distance = p->distance + 1;
+                pn->visit();
                 q.push(pn);
             }
         }
@@ -163,69 +177,87 @@ int find_farthest(std::vector<std::vector<pipe>>& pipes, const point& start) {
     return max_distance;
 }
 
-std::vector<point> in_the_loop(std::vector<std::vector<pipe>>& pipes, const point& start) {
-    find_farthest(pipes, start);
-    std::vector<point> in_the_loop;
-    std::for_each(pipes.begin(), pipes.end(), [&](std::vector<pipe>& row) {
-        std::for_each(row.begin(), row.end(), [&](pipe& p) {
-            if(p.distance > 0) {
-                in_the_loop.push_back(p.pos);
+pipe* get_adyacent(std::vector<std::vector<pipe>>& pipes, const point& p, position pos) {
+    point pn(p.y, p.x);
+    switch(pos) {
+        case position::NORTH:
+            pn.y--;
+            if(pn.y >= 0) {
+                if(!pipes[pn.y][pn.x].in_the_loop()) {
+                    return &pipes[pn.y][pn.x];
+                }
             }
-        });
-    });
-    return in_the_loop;
+            break;
+        case position::EAST:
+            pn.x++;
+            if(pn.x < pipes[p.y].size()) {
+                if(!pipes[pn.y][pn.x].in_the_loop()) {
+                    return &pipes[pn.y][pn.x];
+                }
+            }
+            break;
+        case position::SOUTH:
+            pn.y++;
+            if(pn.y < pipes.size()) {
+                if (!pipes[pn.y][pn.x].in_the_loop()) {
+                    return &pipes[pn.y][pn.x];
+                }
+            }
+            break;
+        case position::WEST:
+            pn.x--;
+            if(p.x >= 0) {
+                if(!pipes[pn.y][pn.x].in_the_loop()) {
+                    return &pipes[pn.y][pn.x];
+                }
+            }
+            break;
+        case position::UNKNOWN:
+            break;
+    }
+    return nullptr;
 }
 
-constexpr bool is_in_loop(const std::vector<point>& the_loop, const point& p) {
-    return std::find(the_loop.begin(), the_loop.end(), p) != the_loop.end();
+std::vector<pipe*> expand2(std::vector<std::vector<pipe>>& pipes, point p) {
+    std::vector<pipe*> expanded;
+    for(position pos: {position::NORTH, position::EAST, position::SOUTH, position::WEST}) {
+        pipe* pn = get_adyacent(pipes, p, pos);
+        if(pn != nullptr) {
+            expanded.push_back(pn);
+        }
+    }
+    return expanded;
+
 }
 
-int area_enclosed(int width, int height, const std::vector<point>& in_the_loop) {
-    enum class status {
-        BORDER_IN,
-        BORDER_OUT,
-        INSIDE,
-        OUTSIDE
-    };
-    int area = 0;
-    status s = status::OUTSIDE;
-    for(int y = 0; y < height; y++) {
-        for(int x = 0; x < width; x++) {
-            point p(y, x);
-            bool inloop = is_in_loop(in_the_loop, p);
-            switch(s) {
-                case status::OUTSIDE:
-                    if(inloop) {
-                        s = status::BORDER_OUT;
-                    }
-                    break;
-                case status::BORDER_IN:
-                    if(!inloop) {
-                        s = status::OUTSIDE;
-                    }
-                    break;
-                case status::BORDER_OUT:
-                    if(!inloop) {
-                        s = status::INSIDE;
-                    }
-                    break;
-                case status::INSIDE:
-                    if(inloop) {
-                        s = status::BORDER_IN;
-                    }
-                    break;
-            }
-            if(s == status::INSIDE) {
-                area++;
+
+int area_enclosed(std::vector<std::vector<pipe>>& pipes) {
+    std::queue<pipe*> q;
+    pipes[0][0].visit();
+    q.push(&pipes[0][0]);
+    while(!q.empty()) {
+        pipe* p = q.front();
+        q.pop();
+        //Expand
+        auto expanded = expand2(pipes, p->pos);
+        for(pipe* pn : expanded) {
+            if(!pn->is_visited()) {
+                pn->visit();
+                q.push(pn);
             }
         }
     }
-    return area;
+    return std::accumulate(pipes.begin(), pipes.end(), 0, [](int acc, const std::vector<pipe>& row) {
+        return acc + std::accumulate(row.begin(), row.end(), 0, [](int acc, const pipe& p) {
+            return acc + (!p.is_visited() ? 1 : 0);
+        });
+    });
 }
 
 int main(int argc, char** argv) {
     auto [pipes, start] = load_map();
-    auto points_in_the_loop = in_the_loop(pipes, start);
-    std::cout << area_enclosed(pipes[0].size(), pipes.size(), points_in_the_loop) << std::endl;
+    //mark all the pipes that are in the loop
+    find_farthest(pipes, start);
+    std::cout << area_enclosed(pipes) << std::endl;
     return 0;
 }
