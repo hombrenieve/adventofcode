@@ -12,6 +12,14 @@ struct point {
     }
 };
 
+long long& get_x(point& p) {
+    return p.x;
+}
+
+long long& get_y(point& p) {
+    return p.y;
+}
+
 std::ostream& operator<<(std::ostream& os, point p) {
     os << "(" << p.x << ", " << p.y << ")";
     return os;
@@ -42,56 +50,27 @@ std::vector<point> load_galaxies() {
     return galaxies;
 }
 
-void expand_y(std::vector<point>& galaxies) {
+void expand(std::vector<point>& galaxies, std::function<long long&(point&)> get) {
     //Order by y
-    std::sort(galaxies.begin(), galaxies.end(), [](const point& a, const point& b) {
-        return a.y < b.y;
+    std::sort(galaxies.begin(), galaxies.end(), [&get](point& a, point& b) {
+        return get(a) < get(b);
     });
     std::vector<point> new_galaxies = galaxies;
-    for (int y = 0; y <= galaxies[galaxies.size()-1].y; y++) {
+    for (int y = 0; y <= get(galaxies[galaxies.size()-1]); y++) {
         int j = 0;
-        while (j < galaxies.size() && galaxies[j].y < y) {
+        while (j < galaxies.size() && get(galaxies[j]) < y) {
             j++;
         }
         if (j < galaxies.size()) {
             bool found = false;
-            while(j < galaxies.size() && galaxies[j].y == y) {
+            while(j < galaxies.size() && get(galaxies[j]) == y) {
                 found = true;
                 j++;
             }
             if (!found) {
                 for(int k = 0; k < galaxies.size(); k++) {
-                    if(galaxies[k].y > y) {
-                        new_galaxies[k].y += 999999;
-                    }
-                }
-            }
-        }
-    }
-    galaxies = new_galaxies;
-}
-
-void expand_x(std::vector<point>& galaxies) {
-    //Order by y
-    std::sort(galaxies.begin(), galaxies.end(), [](const point& a, const point& b) {
-        return a.x < b.x;
-    });
-    std::vector<point> new_galaxies = galaxies;
-    for (int x = 0; x <= galaxies[galaxies.size()-1].x; x++) {
-        int j = 0;
-        while (j < galaxies.size() && galaxies[j].x < x) {
-            j++;
-        }
-        if (j < galaxies.size()) {
-            bool found = false;
-            while(j < galaxies.size() && galaxies[j].x == x) {
-                found = true;
-                j++;
-            }
-            if (!found) {
-                for(int k = 0; k < galaxies.size(); k++) {
-                    if(galaxies[k].x > x) {
-                        new_galaxies[k].x += 999999;
+                    if(get(galaxies[k]) > y) {
+                        get(new_galaxies[k]) += 999999;
                     }
                 }
             }
@@ -112,10 +91,8 @@ std::vector<long long> distances(const std::vector<point>& galaxies) {
 
 int main() {
     auto galaxies = load_galaxies();
-    std::cout << galaxies << std::endl;
-    expand_x(galaxies);
-    expand_y(galaxies);
-    std::cout << galaxies << std::endl;
+    expand(galaxies, get_x);
+    expand(galaxies, get_y);
     auto distance_pairs = distances(galaxies);
     std::cout << std::accumulate(distance_pairs.begin(), distance_pairs.end(), 0LL) << std::endl;
     return 0;
