@@ -12,7 +12,8 @@
                 "-g",
                 "${file}",
                 "-o",
-                "${workspaceFolder}/target/${fileBasenameNoExtension}.o"
+                "${workspaceFolder}/target/${fileBasenameNoExtension}.o",
+                "-lboost_regex"
             ],
             "options": {
                 "cwd": "${fileDirname}"
@@ -49,8 +50,7 @@
             "dependsOn": [
                 "C/C++: g++ build active file"
             ]
-        }
-        ,
+        },
         {
             "type": "shell",
             "label": "C/C++: g++ build and run with input",

@@ -1,11 +1,11 @@
 #include "common.h"
-#include <regex>
+#include <boost/regex.hpp>
 
 
 class condition_record {
     std::string template_arrangement;
     std::vector<int> registers;
-    std::string regexp;
+    boost::regex regexp;
 
     constexpr std::vector<std::string> get_all_arrangements(const std::string& template_arrangement) {
         std::vector<std::string> arrangements;
@@ -36,34 +36,98 @@ class condition_record {
     }
 
     int arrangement_matches(const std::vector<std::string>& arrangements) const {
-        std::regex r(regexp);
-        std::smatch m;
+        boost::regex r(regexp);
+        boost::cmatch m;
         int count = 0;
         for(const auto& arrangement : arrangements) {
-            if(std::regex_match(arrangement, m, r)) {
+            if(boost::regex_match(arrangement.c_str(), m, r)) {
                 count++;
             }
         }
         return count;
     }
 
-public:
-    condition_record(const std::string& arrangement, const std::vector<int>& registers) : template_arrangement(arrangement), registers(registers) {
-        for(int i = 0; i < registers.size(); i++) {
-            if(i == 0) {
-                regexp += std::string("(\\.*)");
-            }
-            regexp += std::string("#{") + std::to_string(registers[i]) + "}";
-            if(i != registers.size() - 1) {
-                regexp += std::string("(\\.+)");
+    bool possible_match(const std::string& partial_arrangement) const {
+        boost::match_results<std::string::const_iterator> what;
+        auto matched = boost::regex_match(partial_arrangement, what, regexp, 
+            boost::match_default | boost::match_partial);
+        return matched;
+    }
+
+    bool complete_match(const std::string& arrangement) const {
+        boost::cmatch what;
+        return boost::regex_match(arrangement.c_str(), what, regexp);
+    }
+
+    std::vector<std::string> get_possible_arrangements(const std::string& ctemplate, const std::string& sofar) {
+        std::vector<std::string> arrangements;
+        if(ctemplate.size() == 0) {
+            return {};
+        }
+        if(ctemplate.size() == 1) {
+            if(ctemplate[0] == '?') {
+                if(possible_match(sofar + ".")) {
+                    arrangements.push_back(".");
+                }
+                if(possible_match(sofar + "#")) {
+                    arrangements.push_back("#");
+                }
             } else {
-                regexp += std::string("(\\.*)");
+                arrangements.push_back(std::string(1, ctemplate[0]));
+            }
+        } else {
+            if(ctemplate[0] == '?') {
+                if(possible_match(sofar + ".")) {
+                    auto sub_arrangements = get_possible_arrangements(ctemplate.substr(1), sofar + ".");
+                    for(const auto& sub_arrangement : sub_arrangements) {
+                        //add it if possible
+                        if(complete_match(sofar + "." + sub_arrangement)) {
+                            arrangements.push_back("." + sub_arrangement);
+                        }
+                    }
+                }
+                if(possible_match(sofar + "#")) {
+                    auto sub_arrangements = get_possible_arrangements(ctemplate.substr(1), sofar + "#");
+                    for(const auto& sub_arrangement : sub_arrangements) {
+                        //add it if possible
+                        if(complete_match(sofar + "#" + sub_arrangement)) {
+                            arrangements.push_back("#" + sub_arrangement);
+                        }
+                    }
+                }
+            } else {
+                auto sub_arrangements = get_possible_arrangements(ctemplate.substr(1), sofar + std::string(1, ctemplate[0]));
+                for(const auto& sub_arrangement : sub_arrangements) {
+                    //add it if possible
+                    if(complete_match(sofar + std::string(1, ctemplate[0]) + sub_arrangement)) {
+                        arrangements.push_back(std::string(1, ctemplate[0]) + sub_arrangement);
+                    }
+                }
             }
         }
+        return arrangements;
+    }
+
+public:
+    condition_record(const std::string& arrangement, const std::vector<int>& registers) : template_arrangement(arrangement), registers(registers) {
+        std::string regexps;
+        for(int i = 0; i < registers.size(); i++) {
+            if(i == 0) {
+                regexps += std::string("(\\.*)");
+            }
+            regexps += std::string("#{") + std::to_string(registers[i]) + "}";
+            if(i != registers.size() - 1) {
+                regexps += std::string("(\\.+)");
+            } else {
+                regexps += std::string("(\\.*)");
+            }
+        }
+        regexp = boost::regex(regexps);
     }
 
     int possible_arrangments() {
-        return arrangement_matches(get_all_arrangements(template_arrangement));
+        auto pa = get_possible_arrangements(template_arrangement, "");
+        return pa.size();
     }
 };
 
@@ -92,6 +156,7 @@ struct day12 {
             return sum + record.possible_arrangments();
         });
     }
+
 };
 
 int main() {
