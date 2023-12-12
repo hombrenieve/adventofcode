@@ -108,8 +108,7 @@ class condition_record {
         return arrangements;
     }
 
-public:
-    condition_record(const std::string& arrangement, const std::vector<int>& registers) : template_arrangement(arrangement), registers(registers) {
+    void build_regex() {
         std::string regexps;
         for(int i = 0; i < registers.size(); i++) {
             if(i == 0) {
@@ -123,6 +122,26 @@ public:
             }
         }
         regexp = boost::regex(regexps);
+    }
+
+public:
+
+    condition_record(const std::string& arrangement, const std::vector<int>& registers) : template_arrangement(arrangement), registers(registers) {
+        build_regex();
+    }
+
+    void expand(int times) {
+        std::string new_template_arrangement;
+        std::vector<int> new_registers;
+        std::string new_regexp;
+        for(int i = 0; i < times; i++) {
+            new_template_arrangement += template_arrangement;
+            new_regexp += regexp.str();
+            std::copy(registers.begin(), registers.end(), std::back_inserter(new_registers));
+        }
+        template_arrangement = new_template_arrangement;
+        registers = new_registers;
+        regexp = boost::regex(new_regexp);        
     }
 
     int possible_arrangments() {
@@ -146,8 +165,10 @@ std::vector<condition_record> load_records() {
     return records;
 }
 
-struct day12 {
+class day12 {
     std::vector<condition_record> records;
+
+public:
 
     day12() : records(load_records()) {}
     
@@ -157,10 +178,19 @@ struct day12 {
         });
     }
 
+    int part2() {
+        for(auto& record : records) {
+            record.expand(5);
+        }
+        return std::accumulate(records.begin(), records.end(), 0, [&](int sum, condition_record& record) {
+            return sum + record.possible_arrangments();
+        });
+    }
+
 };
 
 int main() {
     day12 d;
-    std::cout << d.part1() << std::endl;
+    std::cout << d.part2() << std::endl;
     return 0;
 }
