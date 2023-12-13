@@ -46,14 +46,15 @@ std::vector<std::string> split_with_rep(const std::string& s, const char delimit
   return res;
 }
 
-void do_each_input_until_empty(std::function<void(const std::string &)> func) {
+bool do_each_input_until_empty(std::function<void(const std::string &)> func) {
   char buffer[BUFFER_SIZE];
   while (std::cin.getline(buffer, BUFFER_SIZE - 1)) {
     if (std::cin.gcount() == 1) {
-      break;
+      return true;
     }
     func(std::string(buffer).substr(0, std::cin.gcount() - 1));
   }
+  return false;
 }
 
 

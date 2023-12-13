@@ -1,11 +1,15 @@
 #include "common.h"
 
-std::vector<std::string> load_map() {
+std::vector<std::vector<std::string>> load_maps() {
+    std::vector<std::vector<std::string>> mirrormaps;
     std::vector<std::string> mirrormap;
-    do_each_input([&mirrormap](const std::string& line) {
+    while(do_each_input_until_empty([&mirrormap](const std::string& line) {
         mirrormap.push_back(line);
-    });
-    return mirrormap;
+    })) {
+        mirrormaps.push_back(mirrormap);
+        mirrormap.clear();
+    }
+    return mirrormaps;
 }
 
 
@@ -39,7 +43,7 @@ class pattern {
         }
 
     public:
-        pattern() : themap(load_map()) {}
+        pattern(const std::vector<std::string> &amap) : themap(amap) {}
         
         int get_reflection_notes() {
             int notes = 0;
@@ -57,8 +61,27 @@ class pattern {
         }
 };
 
+class part1 {
+    std::vector<pattern> patterns;
+    public:
+        part1() {
+            std::vector<std::vector<std::string>> mirrormaps(load_maps());
+            for(auto &map : mirrormaps) {
+                patterns.push_back(pattern(map));
+            }    
+        }
+
+        int get_total_reflection_notes() {
+            int total = 0;
+            for(auto &p : patterns) {
+                total += p.get_reflection_notes();
+            }
+            return total;
+        }
+};
+
 int main(int argc, char** argv) {
-    pattern p;
-    std::cout << p.get_reflection_notes() << std::endl;
+    part1 p;
+    std::cout << p.get_total_reflection_notes() << std::endl;
     return 0;
 }
