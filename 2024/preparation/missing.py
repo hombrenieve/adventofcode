@@ -5,10 +5,9 @@
 import sys
 
 for line in sys.stdin:
-    numbers = [int(i) for i in line.split()]
-    # remove duplicates and sort
-    numbers = list(set(numbers))
-    numbers.sort()
-    all_numbers = [i for i in range(0, numbers[len(numbers)-1]+1)]
+    numbers = sorted(set(int(i) for i in line.split()))
+    # Generate a list of all numbers from the smallest to the largest in the input list
+    all_numbers = list(range(numbers[0], numbers[len(numbers)-1]+1))
+    # Find the missing numbers
     missing = [i for i in all_numbers if i not in numbers]
-    print(','.join(map(str, missing)))
+    print(' '.join(map(str, missing)))
