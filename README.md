@@ -13,3 +13,5 @@ languages and, on the go, try to have some fun with other geek friends.
   - Let's do it in Rust (I really was expecting this...)
 - 2023 edition
   - Coming back to the origins... C++ it is
+- 2024 edition
+  - Let's do it in Python (Try the Machine Learning language and learn something)
