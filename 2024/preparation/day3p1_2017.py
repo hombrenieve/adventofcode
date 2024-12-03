@@ -12,7 +12,7 @@ orig = (gen-4)*(gen-4)+1
 side = gen-3
 rest = (number-orig)
 first = orig+side//2
-centers = [first, first+side-1, first+2*side-1, first+3*side-1]
+centers = [first-1, first+side-1, first+2*side-1, first+3*side-1]
 difs = [abs(number-y) for y in centers]
 print(centers)
 print(difs)
