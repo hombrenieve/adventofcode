@@ -12,9 +12,12 @@ def mark_antinnodes(id, nodes):
         for o in range(len(nodes)):
             if o == i: continue
             vector = (nodes[o][0]-nodes[i][0], nodes[o][1]-nodes[i][1])
-            new_coord = (nodes[i][0] + 2*vector[0], nodes[i][1] + 2*vector[1])
-            if in_bounds(new_coord):
+            mult = 1
+            new_coord = (nodes[i][0] + mult*vector[0], nodes[i][1] + mult*vector[1])
+            while in_bounds(new_coord):
                 antinodes.add(new_coord)
+                mult += 1
+                new_coord = (nodes[i][0] + mult*vector[0], nodes[i][1] + mult*vector[1])
 
 with open("input.txt") as f:
     content = f.readlines()
