@@ -15,3 +15,23 @@ languages and, on the go, try to have some fun with other geek friends.
   - Coming back to the origins... C++ it is
 - 2024 edition
   - Let's do it in Python (Try the Machine Learning language and learn something)
+- 2025 edition
+  - Exploring Typescript and what it can do better or worse compared to Javascript
+  
+  **Initial Setup:**
+  ```bash
+  cd 2025
+  npm install
+  ```
+  
+  **Daily Usage:**
+  - Files: `day1.ts`, `day1p2.ts`, etc. in `/2025` folder
+  - Input: `input.txt` in same folder as solution
+  - Run: Press **F5** in VS Code or `npx ts-node dayX.ts`
+  - Template:
+    ```typescript
+    import { readInput } from './utils';
+    
+    const lines = readInput();
+    // Your solution here
+    ```

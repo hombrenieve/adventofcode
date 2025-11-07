@@ -1,0 +1,13 @@
+{
+  "name": "adventofcode-2025",
+  "version": "1.0.0",
+  "description": "Advent of Code 2025 solutions in TypeScript",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0"
+  }
+}

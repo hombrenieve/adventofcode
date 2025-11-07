@@ -2,3 +2,5 @@ input*
 target
 .env
 .odo
+node_modules
+package-lock.json
