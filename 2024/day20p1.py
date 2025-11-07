@@ -42,7 +42,7 @@ class Graph:
                 if node in self.graph[nodeN]:
                     self.graph[nodeN].remove(node)
 
-    def shortest_distance(self):
+    def shortest_distances(self):
         source = self.maze.start
         distances = {node: 1e7 for node in self.graph}
         distances[source] = 0
@@ -59,7 +59,22 @@ class Graph:
                 if distance < distances[neighbor]:
                     distances[neighbor] = distance
                     heappush(pq, (distance, neighbor))
-        return distances[self.maze.end]
+        return distances
+    
+    def shortest_distance(self):
+        return self.shortest_distances()[self.maze.end]
+    
+    def get_track_span(self):
+        distances = self.shortest_distances()
+        max_distance = distances[self.maze.end]
+        distances = [loc for loc in distances if distances[loc] <= max_distance]
+        rightest = max(distances, key=lambda x: x[1])
+        leftest = min(distances, key=lambda x: x[1])
+        toppest = min(distances, key=lambda x: x[0])
+        bottompest = max(distances, key=lambda x: x[0])
+        return [(toppest[0], leftest[1]), (bottompest[0], rightest[1])]
+        
+
 
 class Game:
     def __init__(self, content):
@@ -69,9 +84,10 @@ class Game:
     def calculate_cheat_distance(self, saved_distance_threshold):
         times = 0
         base_distance = self.graph.shortest_distance()
-        total = (len(self.maze.content)-1) * (len(self.maze.content[0])-1)
-        for i in range(1, len(self.maze.content)-1):
-            for j in range(1, len(self.maze.content[i])-1):
+        span = self.graph.get_track_span()
+        total = (span[1][0] - span[0][0] + 1) * (span[1][1] - span[0][1] + 1)
+        for i in range(span[0][0], span[1][0]+1):
+            for j in range(span[0][1], span[1][1]+1):
                 total -= 1
                 if self.maze.content[i][j] == '#':
                     self.graph.add_node((i, j))
