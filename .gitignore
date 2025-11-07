@@ -1,2 +1,4 @@
 input*
 target
+.env
+.odo
