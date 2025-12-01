@@ -1,6 +1,6 @@
 import { readInput } from './utils';
 
-console.log("Day 1 - Part 1");
+console.log("Day 1 - Part 2");
 
 const lines = readInput('inputOf.txt');
 console.log(`Read ${lines.length} lines from input.txt`);
