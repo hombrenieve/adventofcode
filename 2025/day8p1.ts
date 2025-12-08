@@ -1,9 +1,6 @@
 import { readInput } from './utils';
 
-console.log("Day 8 - Part 1");
-
-const lines = readInput('inputEx.txt');
-console.log(`Read ${lines.length} lines from input file`);
+const lines = readInput('inputOf.txt');
 
 class JunctionBox {
     x: number;
@@ -31,62 +28,11 @@ class Edge {
             Math.pow(to.z - from.z, 2)
         );
     }
-
-    contains(box: JunctionBox): boolean {
-        return (this.from === box || this.to === box);
-    }
-
-    linksTogether(box1: JunctionBox, box2: JunctionBox): boolean {
-        return (this.from === box1 && this.to === box2) ||
-               (this.from === box2 && this.to === box1);
-    }
     getLength(): number {
         return this.length;
     }
 }
 
-class Circuit {
-    edges: Edge[] = [];
-
-    addEdge(edge: Edge): void {
-        this.edges.push(edge);
-    }
-
-    belongsToCircuit(edge: Edge): number {
-        // I want to count if one of the edge's junction boxes is already in this circuit
-        // or both of them, but I only need to count them once, it means tha the result is either 0, 1 or 2
-        let isFrom = false;
-        for (const existingEdge of this.edges) {
-            if (existingEdge.contains(edge.from)) {
-                isFrom = true;
-                break;
-            }
-        }
-        let isTo = false;
-        for (const existingEdge of this.edges) {
-            if (existingEdge.contains(edge.to)) {
-                isTo = true;
-                break;
-            }
-        }
-        if (isFrom && isTo) {
-            return 2;
-        } else if (isFrom || isTo) {
-            return 1;
-        } else {
-            return 0;
-        }
-    }
-
-    getTotalJunctionBoxes(): number {
-        const boxes = new Set<JunctionBox>();
-        for (const edge of this.edges) {
-            boxes.add(edge.from);
-            boxes.add(edge.to);
-        }
-        return boxes.size;
-    }
-}
 
 let junctionBoxes: JunctionBox[] = [];
 for (const line of lines) {
@@ -107,58 +53,46 @@ for (let i = 0; i < junctionBoxes.length; i++) {
 // Sort edges by length
 edges.sort((a, b) => a.getLength() - b.getLength());
 
-console.log(`Generated ${edges.length} edges between junction boxes.`);
+// edges generated
 
-const CONNECTIONS = 10;
-let connectionsEstablished = 0;
-let currentEdgeIndex = 0;
+const CONNECTIONS = 1000;
+const selectedEdges: Edge[] = [];
 
-let circuits: Circuit[] = [];
-while (connectionsEstablished < CONNECTIONS) {
-    const edge = edges[currentEdgeIndex];
-    currentEdgeIndex++;
-    let addedToExistingCircuit = false;
-    for (const circuit of circuits) {
-        switch (circuit.belongsToCircuit(edge)) {
-            case 2:
-                // Both junction boxes are already in this circuit, skip this edge
-                addedToExistingCircuit = true;
-                circuit.addEdge(edge);
-                break;
-            case 1:
-                // One junction box is in this circuit, add the edge
-                circuit.addEdge(edge);
-                connectionsEstablished++;
-                addedToExistingCircuit = true;
-                break;
-            case 0:
-                // Neither junction box is in this circuit, do nothing
-                break;
-        }
-    }
-    // If no existing circuit contains this edge, create a new one
-    if (addedToExistingCircuit) {
-        continue;
-    }
-    const newCircuit = new Circuit();
-    newCircuit.addEdge(edge);
-    circuits.push(newCircuit);
-    connectionsEstablished++;
+// Select the first N edges by length (including those that connect already-connected nodes)
+selectedEdges.push(...edges.slice(0, Math.min(CONNECTIONS, edges.length)));
+
+// Build groups from the selected edges
+const parentAlt: number[] = Array.from({ length: junctionBoxes.length }, (_, i) => i);
+function findAlt(i: number): number { if (parentAlt[i] !== i) parentAlt[i] = findAlt(parentAlt[i]); return parentAlt[i]; }
+function unionAlt(a: number, b: number) {
+    const ra = findAlt(a); const rb = findAlt(b);
+    if (ra === rb) return;
+    parentAlt[rb] = ra;
+}
+for (const e of selectedEdges) {
+    const a = junctionBoxes.indexOf(e.from);
+    const b = junctionBoxes.indexOf(e.to);
+    if (a !== -1 && b !== -1) unionAlt(a, b);
+}
+const groupsAlt = new Map<number, Set<string>>();
+for (let i = 0; i < junctionBoxes.length; i++) {
+    const r = findAlt(i);
+    if (!groupsAlt.has(r)) groupsAlt.set(r, new Set());
+    groupsAlt.get(r)!.add(`${junctionBoxes[i].x},${junctionBoxes[i].y},${junctionBoxes[i].z}`);
+}
+// (groupsAlt contains the connected components built from selected edges)
+
+// Compute sizes from groups built from selected edges
+const sizes = Array.from(groupsAlt.values()).map(s => s.size).sort((a, b) => b - a);
+console.log(`Identified ${sizes.length} circuits.`);
+for (let i = 0; i < sizes.length; i++) {
+    console.log(`Circuit ${i + 1}: ${sizes[i]} junction boxes.`);
 }
 
-// Sort circuits by number of junction boxes
-circuits.sort((a, b) => b.getTotalJunctionBoxes() - a.getTotalJunctionBoxes());
-
-console.log(`Identified ${circuits.length} circuits.`);
-// Show size of each circuit
-for (let i = 0; i < circuits.length; i++) {
-    console.log(`Circuit ${i + 1}: ${circuits[i].getTotalJunctionBoxes()} junction boxes.`);
-}
-
-// Multiply the size of the 3 first circuits
+// Multiply the size of the 3 largest circuits (or fewer if not present)
 let result = 1;
-for (let i = 0; i < 3; i++) {
-    result *= circuits[i].getTotalJunctionBoxes();
+for (let i = 0; i < Math.min(3, sizes.length); i++) {
+    result *= sizes[i];
 }
 
 console.log(`Result: ${result}`);
