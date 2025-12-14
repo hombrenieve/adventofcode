@@ -1,9 +1,159 @@
 import { readInput } from './utils';
+import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
+import { cpus } from 'os';
 
-console.log("Day 10 - Part 2");
+console.log("Day 10 - Part 2 (Multi-threaded)");
 
-const lines = readInput('inputOf.txt');
-console.log(`Read ${lines.length} lines from input file`);
+if (isMainThread) {
+    // MAIN THREAD: Coordinate the work
+    main();
+} else {
+    // WORKER THREAD: Process assigned lines
+    worker();
+}
+
+async function main() {
+    const lines = readInput('inputOf.txt');
+    console.log(`Read ${lines.length} lines from input file`);
+    
+    const numCPUs = cpus().length;
+    const numWorkers = Math.max(1, numCPUs - 1); // Use all CPUs except 1
+    console.log(`Using ${numWorkers} worker threads (${numCPUs} CPUs available)`);
+    
+    // Split work among workers
+    const linesPerWorker = Math.ceil(lines.length / numWorkers);
+    const workers: Worker[] = [];
+    const results: Array<{ lineNumber: number, result: number | null }> = [];
+    
+    // Create workers and assign work
+    const workerPromises = [];
+    
+    for (let i = 0; i < numWorkers; i++) {
+        const startLine = i * linesPerWorker;
+        const endLine = Math.min(startLine + linesPerWorker, lines.length);
+        
+        if (startLine >= lines.length) break;
+        
+        const workerLines = lines.slice(startLine, endLine);
+        
+        const workerPromise = new Promise<Array<{ lineNumber: number, result: number | null }>>((resolve, reject) => {
+            const worker = new Worker(__filename, {
+                workerData: { 
+                    lines: workerLines, 
+                    startLineNumber: startLine 
+                }
+            });
+            
+            worker.on('message', (workerResults) => {
+                resolve(workerResults);
+            });
+            
+            worker.on('error', reject);
+            
+            worker.on('exit', (code) => {
+                if (code !== 0) {
+                    reject(new Error(`Worker stopped with exit code ${code}`));
+                }
+            });
+            
+            workers.push(worker);
+        });
+        
+        workerPromises.push(workerPromise);
+    }
+    
+    console.log(`Started ${workerPromises.length} workers`);
+    
+    // Wait for all workers to complete
+    try {
+        const allResults = await Promise.all(workerPromises);
+        
+        // Combine results from all workers
+        for (const workerResults of allResults) {
+            results.push(...workerResults);
+        }
+        
+        // Sort results by line number
+        results.sort((a, b) => a.lineNumber - b.lineNumber);
+        
+        // Calculate final statistics
+        let totalSum = 0;
+        let solutionsFound = 0;
+        
+        for (const { lineNumber, result } of results) {
+            if (result !== null) {
+                if (lineNumber < 5) {
+                    console.log(`Line ${lineNumber + 1}: ${result} presses`);
+                }
+                totalSum += result;
+                solutionsFound++;
+            } else {
+                if (lineNumber < 10) {
+                    console.log(`Line ${lineNumber + 1}: No solution found`);
+                }
+            }
+        }
+        
+        console.log(`\nFinal Results:`);
+        console.log(`- Processed ${lines.length} lines`);
+        console.log(`- Found solutions for ${solutionsFound} lines`);
+        console.log(`- Total button presses needed: ${totalSum}`);
+        
+    } catch (error) {
+        console.error('Error in worker threads:', error);
+    } finally {
+        // Clean up workers
+        workers.forEach(worker => worker.terminate());
+    }
+}
+
+function worker() {
+    const { lines, startLineNumber } = workerData;
+    const results: Array<{ lineNumber: number, result: number | null }> = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        const lineNumber = startLineNumber + i;
+        
+        if (!line.trim()) continue;
+        
+        // Parse input line
+        const buttonMatches = line.match(/\(([^)]+)\)/g);
+        const buttons: number[][] = [];
+        
+        if (buttonMatches) {
+            for (const match of buttonMatches) {
+                const numbersStr = match.slice(1, -1);
+                if (numbersStr.trim()) {
+                    const numbers = numbersStr.split(',').map((n: string) => parseInt(n.trim()));
+                    buttons.push(numbers);
+                }
+            }
+        }
+        
+        const targetMatch = line.match(/\{([^}]+)\}/);
+        const target: number[] = [];
+        
+        if (targetMatch) {
+            const numbersStr = targetMatch[1];
+            if (numbersStr.trim()) {
+                target.push(...numbersStr.split(',').map((n: string) => parseInt(n.trim())));
+            }
+        }
+        
+        // Solve the problem
+        const result = solve(buttons, target);
+        results.push({ lineNumber, result });
+        
+        // Progress reporting (every 10 lines per worker)
+        if ((i + 1) % 10 === 0) {
+            console.log(`Worker processing line ${lineNumber + 1}...`);
+        }
+    }
+    
+    // Send results back to main thread
+    parentPort?.postMessage(results);
+}
 
 /**
  * Main solver function - tries to find minimum button presses to reach exact targets
@@ -22,10 +172,6 @@ function solve(buttons: number[][], target: number[]): number | null {
 
 /**
  * Core recursive function that finds minimum button presses
- * 
- * @param targets - Array showing how much each target still needs
- * @param availableButtons - Bitmask showing which buttons we can still use
- * @param buttons - Array of which targets each button affects
  */
 function findMinimumPresses(targets: number[], availableButtons: number, buttons: number[][]): number {
     // BASE CASE: All targets satisfied
@@ -34,7 +180,6 @@ function findMinimumPresses(targets: number[], availableButtons: number, buttons
     }
     
     // STEP 1: Choose the "hardest" target to satisfy
-    // (the one with fewest available buttons that can help it)
     const chosenTarget = chooseHardestTarget(targets, availableButtons, buttons);
     
     if (chosenTarget === -1) {
@@ -45,7 +190,6 @@ function findMinimumPresses(targets: number[], availableButtons: number, buttons
     const helpfulButtons = chosenTarget.buttons;
     
     // STEP 2: Remove these helpful buttons from future consideration
-    // (once we decide how to use them for this target, they're "spent")
     let newAvailableButtons = availableButtons;
     for (const buttonIdx of helpfulButtons) {
         newAvailableButtons = removeButton(newAvailableButtons, buttonIdx);
@@ -75,7 +219,6 @@ function findMinimumPresses(targets: number[], availableButtons: number, buttons
 
 /**
  * Choose the target that's hardest to satisfy (has fewest helpful buttons)
- * This is the key optimization - by solving hard targets first, we prune more branches
  */
 function chooseHardestTarget(targets: number[], availableButtons: number, buttons: number[][]) {
     let bestTarget = { index: -1, buttons: [] as number[], buttonCount: Infinity };
@@ -106,8 +249,6 @@ function chooseHardestTarget(targets: number[], availableButtons: number, button
 
 /**
  * Find all ways to distribute 'total' presses among 'numButtons' buttons
- * For example: distribute 5 presses among 2 buttons gives:
- * [0,5], [1,4], [2,3], [3,2], [4,1], [5,0]
  */
 function findAllWaysToSum(numButtons: number, total: number): number[][] {
     const ways: number[][] = [];
@@ -154,7 +295,6 @@ function applyButtonPresses(
                     newTargets[targetIdx] -= numPresses;
                     
                     // CRITICAL: If we go below 0, this is invalid
-                    // (can't "undo" button presses)
                     if (newTargets[targetIdx] < 0) {
                         return null;
                     }
@@ -176,54 +316,3 @@ function isButtonAvailable(mask: number, buttonIndex: number): boolean {
 function removeButton(mask: number, buttonIndex: number): number {
     return mask & ~(1 << buttonIndex);
 }
-
-// Main execution
-let totalSum = 0;
-let solutionsFound = 0;
-
-for (let lineNumber = 0; lineNumber < lines.length; lineNumber++) {
-    const line = lines[lineNumber];
-    if (!line.trim()) continue;
-    
-    // Parse input line
-    const buttonMatches = line.match(/\(([^)]+)\)/g);
-    const buttons: number[][] = [];
-    
-    if (buttonMatches) {
-        for (const match of buttonMatches) {
-            const numbersStr = match.slice(1, -1);
-            if (numbersStr.trim()) {
-                const numbers = numbersStr.split(',').map(n => parseInt(n.trim()));
-                buttons.push(numbers);
-            }
-        }
-    }
-    
-    const targetMatch = line.match(/\{([^}]+)\}/);
-    const target: number[] = [];
-    
-    if (targetMatch) {
-        const numbersStr = targetMatch[1];
-        if (numbersStr.trim()) {
-            target.push(...numbersStr.split(',').map(n => parseInt(n.trim())));
-        }
-    }
-    
-    // Solve the problem
-    const result = solve(buttons, target);
-    
-    if (result !== null) {
-        console.log(`Line ${lineNumber + 1}: ${result} presses`);
-        totalSum += result;
-        solutionsFound++;
-    } else {
-        if (lineNumber < 10) {
-            console.log(`Line ${lineNumber + 1}: No solution found`);
-        }
-    }
-}
-
-console.log(`\nFinal Results:`);
-console.log(`- Processed ${lines.length} lines`);
-console.log(`- Found solutions for ${solutionsFound} lines`);
-console.log(`- Total button presses needed: ${totalSum}`);
