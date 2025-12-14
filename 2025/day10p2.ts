@@ -213,19 +213,13 @@ for (let lineNumber = 0; lineNumber < lines.length; lineNumber++) {
     const result = solve(buttons, target);
     
     if (result !== null) {
-        if (lineNumber < 5) {
-            console.log(`Line ${lineNumber + 1}: ${result} presses`);
-        }
+        console.log(`Line ${lineNumber + 1}: ${result} presses`);
         totalSum += result;
         solutionsFound++;
     } else {
         if (lineNumber < 10) {
             console.log(`Line ${lineNumber + 1}: No solution found`);
         }
-    }
-    
-    if ((lineNumber + 1) % 25 === 0) {
-        console.log(`Processed ${lineNumber + 1} lines, found ${solutionsFound} solutions`);
     }
 }
 
