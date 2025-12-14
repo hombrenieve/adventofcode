@@ -2,13 +2,13 @@ import { readInput } from './utils';
 import { Worker, isMainThread, parentPort, workerData } from 'worker_threads';
 import { cpus } from 'os';
 
-console.log("Day 10 - Part 2 (Multi-threaded)");
+console.log("Day 10 - Part 2 (Multi-threaded FIFO)");
 
 if (isMainThread) {
-    // MAIN THREAD: Coordinate the work
+    // MAIN THREAD: Coordinate the work with FIFO queue
     main();
 } else {
-    // WORKER THREAD: Process assigned lines
+    // WORKER THREAD: Process tasks from queue
     worker();
 }
 
@@ -17,42 +17,97 @@ async function main() {
     console.log(`Read ${lines.length} lines from input file`);
     
     const numCPUs = cpus().length;
-    const numWorkers = Math.max(1, numCPUs - 1); // Use all CPUs except 1
+    const numWorkers = Math.max(1, numCPUs - 1);
     console.log(`Using ${numWorkers} worker threads (${numCPUs} CPUs available)`);
     
-    // Split work among workers
-    const linesPerWorker = Math.ceil(lines.length / numWorkers);
-    const workers: Worker[] = [];
-    const results: Array<{ lineNumber: number, result: number | null }> = [];
+    // Create task queue - each task is a line with its index
+    const taskQueue: Array<{ lineNumber: number, line: string }> = [];
+    for (let i = 0; i < lines.length; i++) {
+        if (lines[i].trim()) {
+            taskQueue.push({ lineNumber: i, line: lines[i] });
+        }
+    }
     
-    // Create workers and assign work
+    console.log(`Created task queue with ${taskQueue.length} tasks`);
+    
+    // Shared state
+    let completedTasks = 0;
+    let currentTaskIndex = 0;
+    const results: Array<{ lineNumber: number, result: number | null }> = [];
+    const workers: Worker[] = [];
+    
+    const startTime = Date.now();
+    
+    // Create workers
     const workerPromises = [];
     
     for (let i = 0; i < numWorkers; i++) {
-        const startLine = i * linesPerWorker;
-        const endLine = Math.min(startLine + linesPerWorker, lines.length);
-        
-        if (startLine >= lines.length) break;
-        
-        const workerLines = lines.slice(startLine, endLine);
-        
-        const workerPromise = new Promise<Array<{ lineNumber: number, result: number | null }>>((resolve, reject) => {
-            const worker = new Worker(__filename, {
+        const workerPromise = new Promise<void>((resolve, reject) => {
+            const worker = new Worker(`
+                const { register } = require('ts-node');
+                register({
+                    transpileOnly: true,
+                    compilerOptions: {
+                        module: 'commonjs',
+                        target: 'es2020'
+                    }
+                });
+                require('${__filename}');
+            `, {
+                eval: true,
                 workerData: { 
-                    lines: workerLines, 
-                    startLineNumber: startLine 
+                    workerId: i + 1
                 }
             });
             
-            worker.on('message', (workerResults) => {
-                resolve(workerResults);
+            // Handle messages from worker
+            worker.on('message', (message) => {
+                if (message.type === 'requestTask') {
+                    // Worker is requesting a new task
+                    if (currentTaskIndex < taskQueue.length) {
+                        const task = taskQueue[currentTaskIndex];
+                        currentTaskIndex++;
+                        
+                        console.log(`🔄 Worker ${message.workerId} starting line ${task.lineNumber + 1} (${currentTaskIndex}/${taskQueue.length})`);
+                        
+                        worker.postMessage({
+                            type: 'task',
+                            task: task
+                        });
+                    } else {
+                        // No more tasks
+                        worker.postMessage({
+                            type: 'noMoreTasks'
+                        });
+                    }
+                } else if (message.type === 'taskComplete') {
+                    // Worker completed a task
+                    const { lineNumber, result, processingTime } = message;
+                    results.push({ lineNumber, result });
+                    completedTasks++;
+                    
+                    const timeStr = processingTime > 1000 ? 
+                        `${(processingTime / 1000).toFixed(1)}s` : 
+                        `${processingTime}ms`;
+                    
+                    const resultStr = result !== null ? `${result} presses` : 'no solution';
+                    console.log(`✅ Worker ${message.workerId} completed line ${lineNumber + 1} in ${timeStr} (${resultStr}) - ${completedTasks}/${taskQueue.length} done`);
+                    
+                } else if (message.type === 'workerFinished') {
+                    // Worker has no more tasks and is finishing
+                    console.log(`🏁 Worker ${message.workerId} finished`);
+                    resolve();
+                }
             });
             
-            worker.on('error', reject);
+            worker.on('error', (error) => {
+                console.error(`❌ Worker ${i + 1} error:`, error);
+                reject(error);
+            });
             
             worker.on('exit', (code) => {
                 if (code !== 0) {
-                    reject(new Error(`Worker stopped with exit code ${code}`));
+                    console.error(`❌ Worker ${i + 1} exited with code ${code}`);
                 }
             });
             
@@ -62,16 +117,14 @@ async function main() {
         workerPromises.push(workerPromise);
     }
     
-    console.log(`Started ${workerPromises.length} workers`);
+    console.log(`🚀 Started ${numWorkers} workers with FIFO task queue`);
     
     // Wait for all workers to complete
     try {
-        const allResults = await Promise.all(workerPromises);
+        await Promise.all(workerPromises);
         
-        // Combine results from all workers
-        for (const workerResults of allResults) {
-            results.push(...workerResults);
-        }
+        const endTime = Date.now();
+        console.log(`\n🎉 All workers completed in ${(endTime - startTime) / 1000}s`);
         
         // Sort results by line number
         results.sort((a, b) => a.lineNumber - b.lineNumber);
@@ -94,13 +147,15 @@ async function main() {
             }
         }
         
-        console.log(`\nFinal Results:`);
-        console.log(`- Processed ${lines.length} lines`);
-        console.log(`- Found solutions for ${solutionsFound} lines`);
+        console.log(`\n📊 Final Results:`);
+        console.log(`- Processed ${taskQueue.length} lines`);
+        console.log(`- Found solutions for ${solutionsFound} lines (${(solutionsFound/taskQueue.length*100).toFixed(1)}%)`);
         console.log(`- Total button presses needed: ${totalSum}`);
+        console.log(`- Total processing time: ${(endTime - startTime) / 1000}s`);
+        console.log(`- Average time per line: ${((endTime - startTime) / taskQueue.length / 1000).toFixed(2)}s`);
         
     } catch (error) {
-        console.error('Error in worker threads:', error);
+        console.error('❌ Error in worker coordination:', error);
     } finally {
         // Clean up workers
         workers.forEach(worker => worker.terminate());
@@ -108,61 +163,84 @@ async function main() {
 }
 
 function worker() {
-    const { lines, startLineNumber } = workerData;
-    const results: Array<{ lineNumber: number, result: number | null }> = [];
+    const { workerId } = workerData;
     
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const lineNumber = startLineNumber + i;
-        
-        if (!line.trim()) continue;
-        
-        // Parse input line
-        const buttonMatches = line.match(/\(([^)]+)\)/g);
-        const buttons: number[][] = [];
-        
-        if (buttonMatches) {
-            for (const match of buttonMatches) {
-                const numbersStr = match.slice(1, -1);
-                if (numbersStr.trim()) {
-                    const numbers = numbersStr.split(',').map((n: string) => parseInt(n.trim()));
-                    buttons.push(numbers);
-                }
-            }
+    // Request first task
+    parentPort?.postMessage({
+        type: 'requestTask',
+        workerId: workerId
+    });
+    
+    // Handle messages from main thread
+    parentPort?.on('message', (message) => {
+        if (message.type === 'task') {
+            // Process the assigned task
+            const { lineNumber, line } = message.task;
+            processLine(lineNumber, line, workerId);
+            
+        } else if (message.type === 'noMoreTasks') {
+            // No more tasks available, finish
+            parentPort?.postMessage({
+                type: 'workerFinished',
+                workerId: workerId
+            });
         }
-        
-        const targetMatch = line.match(/\{([^}]+)\}/);
-        const target: number[] = [];
-        
-        if (targetMatch) {
-            const numbersStr = targetMatch[1];
+    });
+}
+
+function processLine(lineNumber: number, line: string, workerId: number) {
+    const startTime = Date.now();
+    
+    // Parse input line
+    const buttonMatches = line.match(/\(([^)]+)\)/g);
+    const buttons: number[][] = [];
+    
+    if (buttonMatches) {
+        for (const match of buttonMatches) {
+            const numbersStr = match.slice(1, -1);
             if (numbersStr.trim()) {
-                target.push(...numbersStr.split(',').map((n: string) => parseInt(n.trim())));
+                const numbers = numbersStr.split(',').map((n: string) => parseInt(n.trim()));
+                buttons.push(numbers);
             }
-        }
-        
-        // Solve the problem
-        const result = solve(buttons, target);
-        results.push({ lineNumber, result });
-        
-        // Progress reporting (every 10 lines per worker)
-        if ((i + 1) % 10 === 0) {
-            console.log(`Worker processing line ${lineNumber + 1}...`);
         }
     }
     
-    // Send results back to main thread
-    parentPort?.postMessage(results);
+    const targetMatch = line.match(/\{([^}]+)\}/);
+    const target: number[] = [];
+    
+    if (targetMatch) {
+        const numbersStr = targetMatch[1];
+        if (numbersStr.trim()) {
+            target.push(...numbersStr.split(',').map((n: string) => parseInt(n.trim())));
+        }
+    }
+    
+    // Solve the problem
+    const result = solve(buttons, target);
+    const endTime = Date.now();
+    const processingTime = endTime - startTime;
+    
+    // Send result back to main thread
+    parentPort?.postMessage({
+        type: 'taskComplete',
+        workerId: workerId,
+        lineNumber: lineNumber,
+        result: result,
+        processingTime: processingTime
+    });
+    
+    // Request next task
+    parentPort?.postMessage({
+        type: 'requestTask',
+        workerId: workerId
+    });
 }
 
 /**
  * Main solver function - tries to find minimum button presses to reach exact targets
  */
 function solve(buttons: number[][], target: number[]): number | null {
-    // Start with all targets needing to be satisfied
     const remainingTargets = [...target];
-    
-    // All buttons are initially available (using bitmask for efficiency)
     const allButtonsAvailable = (1 << buttons.length) - 1;
     
     const result = findMinimumPresses(remainingTargets, allButtonsAvailable, buttons);
